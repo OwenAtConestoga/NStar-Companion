@@ -5,7 +5,7 @@
 NorthStar Auth is a hardware password vault — credentials are managed in a browser-based companion app, encrypted with your master password, and synced to a physical USB device. The device acts as a USB HID keyboard and types your passwords directly into any computer, no software required on the target machine.
 
 > **Stack:** Next.js 15 · Tailwind CSS v4 · TypeScript · Web Crypto API · Web Serial API
-> **Hardware:** Arduino Leonardo (or Pro Micro) — ATmega32U4, native USB HID
+> **Hardware:** Raspberry Pi Zero 2 W · Waveshare 1.3" LCD HAT (240×240, SPI)
 
 ---
 
@@ -20,12 +20,13 @@ NorthStar Auth is a hardware password vault — credentials are managed in a bro
 └────────────────────────┬────────────────────────────-┘
                          │ USB (9600 baud serial during sync)
 ┌────────────────────────▼─────────────────────────────┐
-│              Arduino Leonardo / Pro Micro             │
+│              Raspberry Pi Zero 2 W                   │
 │                                                      │
-│  LCD 16×2  ·  4 nav buttons  ·  EEPROM storage       │
+│  Waveshare 1.3" LCD HAT (240×240, SPI)               │
+│  Joystick + 3 keys  ·  16GB microSD storage          │
 │                                                      │
 │  Plug into any computer → navigate menu → SELECT     │
-│  → device types password via USB HID keyboard        │
+│  → device types password via USB HID (OTG)           │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -49,7 +50,7 @@ NorthStar Auth is a hardware password vault — credentials are managed in a bro
 
 - **Node.js 18+** and **npm**
 - **Chrome or Edge** (Web Serial API required — Firefox and Safari not supported)
-- **Arduino Leonardo** or **Pro Micro** for full HID functionality (Elegoo Uno R3 works for companion-app clipboard mode only)
+- **Raspberry Pi Zero 2 W** with Waveshare 1.3" LCD HAT for full HID functionality via USB OTG
 
 ---
 
@@ -146,33 +147,52 @@ northstar-companion/
 
 ---
 
-## Hardware Setup (Arduino Leonardo)
+## Hardware Setup (Raspberry Pi Zero 2 W)
 
-### Wiring
+### Components
 
-| Component | Pin |
+| Item | Details |
 |---|---|
-| LCD RS | 12 |
-| LCD E | 11 |
-| LCD D4 | 5 |
-| LCD D5 | 4 |
-| LCD D6 | 3 |
-| LCD D7 | 2 |
-| Button UP | 6 |
-| Button DOWN | 7 |
-| Button BACK | 8 |
-| Button SELECT | 9 |
+| MCU | Raspberry Pi Zero 2 W (quad-core ARM Cortex-A53, 512MB RAM) |
+| Display | Waveshare 1.3" LCD HAT — 240×240 px, ST7789 driver, SPI |
+| Input | Waveshare HAT built-in: joystick (UP/DOWN/LEFT/RIGHT/PRESS) + 3 keys |
+| Storage | 16GB microSD card |
+| Power | Official Pi Zero power supply |
+| Connectivity | OTG USB (USB HID gadget mode), WiFi, Bluetooth |
+| Case | Pi Zero case with heatsink |
 
-All buttons use `INPUT_PULLUP` — connect one leg to the pin, other leg to GND.
+### Display & Button Wiring
 
-### Uploading Firmware
+The Waveshare 1.3" LCD HAT mounts directly onto the Pi Zero 2 W's 40-pin GPIO header — no individual wiring required.
 
-1. Open `arduino/northstar_hid/northstar_hid.ino` in the Arduino IDE
-2. **Tools → Board → Arduino Leonardo**
-3. Select the correct port
-4. Upload
+**LCD HAT GPIO mapping (for reference):**
 
-> **First sync required:** After uploading, the device shows "Pair via app". Open the companion app, connect via USB, and sync your credentials. After that, the device boots straight to the menu — no app needed.
+| Signal | GPIO (BCM) |
+|---|---|
+| LCD MOSI (DIN) | GPIO 10 |
+| LCD SCLK (CLK) | GPIO 11 |
+| LCD CS | GPIO 8 |
+| LCD DC | GPIO 25 |
+| LCD RST | GPIO 27 |
+| LCD Backlight | GPIO 24 |
+| Key 1 | GPIO 21 |
+| Key 2 | GPIO 20 |
+| Key 3 | GPIO 16 |
+| Joystick UP | GPIO 6 |
+| Joystick DOWN | GPIO 19 |
+| Joystick LEFT | GPIO 5 |
+| Joystick RIGHT | GPIO 26 |
+| Joystick PRESS | GPIO 13 |
+
+### Flashing the Device
+
+1. Flash Raspberry Pi OS Lite (64-bit) to the 16GB microSD using Raspberry Pi Imager
+2. Enable SSH and configure your WiFi in Imager's advanced settings
+3. Enable SPI in `raspi-config` → Interface Options → SPI
+4. Enable USB OTG gadget mode by adding `dtoverlay=dwc2` to `/boot/config.txt` and `dwc2,g_hid` to `/etc/modules`
+5. Install the NorthStar firmware script and configure it to run on boot
+
+> **First sync required:** After booting, the device shows "Pair via app". Open the companion app, connect via USB, and sync your credentials. After that, the device boots straight to the menu — no app needed.
 
 ### Using the Device Standalone
 
@@ -194,28 +214,29 @@ After syncing at least once:
 | Vault key storage | Never stored — derived from master password at unlock, held in memory only |
 | Salt | 16-byte random, stored in `localStorage` alongside the ciphertext (non-secret) |
 | IV | 12-byte random, freshly generated on every save |
-| Device storage | Plaintext in EEPROM — physical access control (biometric auth planned) |
+| Device storage | Plaintext on microSD — physical access control (biometric auth planned) |
 | Sync transport | USB serial cable (physical layer); passwords travel over the cable during sync |
 | Browser support | Chrome / Edge only (Web Serial API + Web Crypto API) |
 
 **What the browser knows:** encrypted blob in `localStorage`. Without the master password, it is unreadable.
-**What the device knows:** plaintext credentials in EEPROM. Physical possession of the device is the security boundary (biometric gate planned for a future revision).
+**What the device knows:** plaintext credentials on microSD. Physical possession of the device is the security boundary (biometric gate planned for a future revision).
 
 ---
 
-## Device EEPROM Layout
+## Device Storage Layout
 
-```
-[0-1]  Magic bytes (0xAB 0xCD) — marks a valid/initialised device
-[2]    Entry count
-[3]    Reserved
-[4+]   Entries, 50 bytes each:
-         [0]     Valid flag (0x01)
-         [1-16]  Service name (15 chars + null)
-         [17-49] Password (32 chars + null)
+Credentials are stored as a JSON file on the microSD (e.g. `/home/pi/vault.json`), synced from the companion app over USB serial.
 
-Max: 20 entries in 1KB EEPROM
+```json
+{
+  "credentials": [
+    { "svc": "GitHub", "pwd": "mypassword" },
+    { "svc": "Gmail",  "pwd": "hunter2"    }
+  ]
+}
 ```
+
+Max entries: limited by microSD capacity (effectively unlimited at ~16GB).
 
 ---
 
@@ -242,18 +263,17 @@ Payload format:
 
 ---
 
-## Planned Hardware Upgrade
-
-The current prototype uses an Arduino Leonardo. The target final hardware is:
+## Current Hardware
 
 | Component | Part |
 |---|---|
-| MCU | RP2040-Zero (21×18mm, USB-C, native HID) |
-| Display | 0.96" I2C OLED (SSD1306, 128×64) |
-| Buttons | 4× 6mm tactile (THT, panel-mount) |
-| Storage | AT24C256 I2C EEPROM (32KB — ~640 entries) |
-| Enclosure | 3D-printed, credit-card-ish form factor |
-| Future MCU | STM32F4 (hardware AES engine for on-device encryption) |
+| MCU | Raspberry Pi Zero 2 W (quad-core ARM Cortex-A53 @ 1GHz, 512MB RAM) |
+| Display | Waveshare 1.3" LCD HAT — 240×240 px, ST7789, SPI |
+| Input | Built-in joystick (4-way + press) + 3 tactile keys |
+| Storage | 16GB microSD |
+| Power | Official Raspberry Pi Zero power supply |
+| Connectivity | USB OTG (HID gadget), WiFi 802.11 b/g/n, Bluetooth 4.2 |
+| Enclosure | Pi Zero case with heatsink |
 
 ---
 
@@ -266,6 +286,6 @@ The current prototype uses an Arduino Leonardo. The target final hardware is:
 | Language | TypeScript |
 | Crypto | Web Crypto API (PBKDF2, AES-256-GCM) — browser-native, no libraries |
 | Hardware comms | Web Serial API — browser-native, no Node.js backend |
-| Firmware | Arduino C++ (`Keyboard.h`, `LiquidCrystal.h`, `EEPROM.h`) |
+| Firmware | Python (`python-evdev`, `st7789`, `RPi.GPIO`) running on Raspberry Pi OS Lite |
 | Backend | None |
 | Database | None |
