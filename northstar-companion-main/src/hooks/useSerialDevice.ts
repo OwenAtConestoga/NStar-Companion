@@ -122,14 +122,11 @@ export function useSerialDevice() {
     const serial = getSerial();
     if (!serial) return;
     try {
-      // 0x2341 = Arduino LLC (Uno, Leonardo, Micro, etc.)
-      // 0x1A86 = CH340 chip (Elegoo and other clone boards)
-      const port = await serial.requestPort({
-        filters: [
-          { usbVendorId: 0x2341 },
-          { usbVendorId: 0x1A86 },
-        ],
-      });
+      // No vendor filter — shows all serial ports in the picker.
+      // Pi Zero 2 W (g_serial / CDC ACM) enumerates with a Linux Foundation VID
+      // that doesn't match the old Arduino / CH340 filter, so we open the picker
+      // to everything and let the user select the correct port.
+      const port = await serial.requestPort();
       await port.open({ baudRate: 9600 });
       portRef.current = port;
 

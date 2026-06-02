@@ -1,0 +1,4 @@
+pyserial>=3.5
+st7789>=0.0.4
+Pillow>=9.0.0
+RPi.GPIO>=0.7.0

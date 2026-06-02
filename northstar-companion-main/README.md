@@ -1,10 +1,10 @@
 # NorthStar Companion
 
-**A local-first, hardware-paired password manager companion app.**
+**A local-first, hardware-paired password manager — no cloud, no server, no trust required.**
 
-NorthStar Auth is a hardware password vault — credentials are managed in a browser-based companion app, encrypted with your master password, and synced to a physical USB device. The device acts as a USB HID keyboard and types your passwords directly into any computer, no software required on the target machine.
+NorthStar Auth is a hardware password vault. Credentials are managed in a browser-based companion app, encrypted with your master password, and synced to a physical USB device. The device either types passwords directly via USB HID keyboard (Windows/Linux) or sends a SELECT event so the companion app copies the password to your clipboard (macOS).
 
-> **Stack:** Next.js 15 · Tailwind CSS v4 · TypeScript · Web Crypto API · Web Serial API
+> **Stack:** Next.js 15 · Tailwind CSS v4 · TypeScript · Web Crypto API · Web Serial API  
 > **Hardware:** Raspberry Pi Zero 2 W · Waveshare 1.3" LCD HAT (240×240, SPI)
 
 ---
@@ -12,74 +12,97 @@ NorthStar Auth is a hardware password vault — credentials are managed in a bro
 ## How It Works
 
 ```
-┌─────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────┐
 │            NorthStar Companion (Browser)             │
 │                                                      │
 │  AES-256-GCM vault      Web Serial API               │
 │  PBKDF2 master key  ←→  USB sync to device           │
-└────────────────────────┬────────────────────────────-┘
-                         │ USB (9600 baud serial during sync)
+└────────────────────────┬─────────────────────────────┘
+                         │ USB — CDC ACM serial (9600 baud) during sync
+                         │ USB — HID keyboard during password entry
 ┌────────────────────────▼─────────────────────────────┐
 │              Raspberry Pi Zero 2 W                   │
 │                                                      │
 │  Waveshare 1.3" LCD HAT (240×240, SPI)               │
-│  Joystick + 3 keys  ·  16GB microSD storage          │
+│  Joystick + 3 keys (KEY1=OK  KEY2=Back  KEY3=Home)   │
+│  16GB microSD · libcomposite USB gadget (ACM + HID)  │
 │                                                      │
-│  Plug into any computer → navigate menu → SELECT     │
-│  → device types password via USB HID (OTG)           │
+│  Navigate menu → SELECT account                      │
+│  → types password via USB HID  (Windows/Linux)       │
+│  → companion app copies to clipboard  (macOS)        │
 └──────────────────────────────────────────────────────┘
 ```
 
-**No cloud. No server. No database. Passwords are encrypted at rest on your machine and stored on the physical device. The device types them anywhere without any app.**
+**No cloud. No server. No database. Passwords are encrypted in the browser and stored on the physical device. Once synced, the device works standalone on any machine.**
 
 ---
 
 ## Features
 
-- **Encrypted local vault** — master password → PBKDF2 (100k iterations) → AES-256-GCM. Stored in `localStorage`, nothing sent anywhere.
-- **Lock / unlock screen** — vault is locked on load, stays locked until master password is entered. Session lock button in the header.
-- **Credential management** — add, edit, delete accounts with service name, username, password (confirm), and icon. Confirm-delete guard on all deletions.
-- **USB device sync** — connect an Arduino Leonardo via the browser's Web Serial API. Sync credentials to device EEPROM over a chunked serial protocol with ACK handshake.
-- **HID password typing** — once synced, unplug the device and use it on any computer. Navigate the LCD menu, press SELECT, click into a password field — the device types the password via USB HID keyboard with a 3-second countdown.
-- **Device panel** — on wide screens, a right-side panel shows the device LCD mockup, connection status, EEPROM slot usage, and hardware specs.
-- **Two firmware versions** — one for Elegoo Uno R3 (companion-app clipboard mode) and one for Arduino Leonardo (standalone HID typing).
+- **Encrypted local vault** — master password → PBKDF2 (100k iterations, SHA-256) → AES-256-GCM. Stored in `localStorage`, nothing ever leaves the browser.
+- **Lock / unlock screen** — vault stays locked until master password is entered. Session lock button in the header.
+- **Credential management** — add, edit, delete accounts with service name, username, password, and icon. Confirm-delete guard on all deletions.
+- **USB device sync** — connect via Chrome/Edge Web Serial API. Sync credentials to the device over a chunked serial protocol with per-chunk ACK handshake.
+- **HID password typing** — navigate the device menu, select an account, press OK → the device types the password as a USB HID keyboard. Works on Windows and Linux without any drivers or OS approval.
+- **macOS clipboard mode** — on macOS (Sequoia+), the device sends a SELECT event over serial; the companion app auto-copies the password and shows a modal. Press ⌘V to paste.
+- **Persistent vault** — credentials survive reboots. The device boots straight to the account menu if credentials are saved; PAIRING screen only appears on first use.
+- **Device panel** — right-side panel shows LCD mockup, connection status, last sync timestamp, and hardware specs.
 
 ---
 
 ## Prerequisites
 
 - **Node.js 18+** and **npm**
-- **Chrome or Edge** (Web Serial API required — Firefox and Safari not supported)
-- **Raspberry Pi Zero 2 W** with Waveshare 1.3" LCD HAT for full HID functionality via USB OTG
+- **Chrome or Edge** — Web Serial API required (Firefox and Safari not supported)
+- **Raspberry Pi Zero 2 W** with Waveshare 1.3" LCD HAT — for sync and HID typing via USB OTG
 
 ---
 
 ## Install & Run
 
 ```bash
-# Clone
-git clone https://github.com/mattydev22/northstar-companion.git
-cd northstar-companion
+git clone https://github.com/OwenAtConestoga/NStar-Companion.git
+cd NStar-Companion
 
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in **Chrome or Edge**.
 
-> The Web Serial API requires either HTTPS or `localhost`. The dev server satisfies this automatically.
+> Web Serial API requires HTTPS or `localhost`. The dev server satisfies this automatically.
 
 ---
 
 ## First-Time Setup
 
-1. Navigate to `/vault`
-2. You will be prompted to **create a master password** — this encrypts your vault. It is never stored or transmitted.
-3. Add credentials using the **+ Add New** button
-4. To sync to a device, click **CONNECT** in the top bar and select your Arduino from the port picker
+1. Go to `/vault`
+2. Create a **master password** — this is the only key to your vault. Never stored, never transmitted.
+3. Add credentials with the **+ Add New** button
+4. Plug the Pi's **USB OTG port** (labeled "USB", not "PWR") into your computer
+5. Click **CONNECT** in the top bar → select the NorthStar port
+6. Click **Initiate Secure Sync** — credentials are sent to the device
+
+After the first sync, the device boots to the HOME menu automatically on every reboot.
+
+---
+
+## Using the Device
+
+1. Plug the device into any computer via the **USB OTG port**
+2. Navigate with the **joystick** (up/down) or **KEY1** (OK) to enter menus
+3. Select an account → press **KEY1** to send the password
+   - **Windows / Linux:** device types the password via USB HID keyboard — make sure cursor is in the target field
+   - **macOS:** companion app shows a copy modal — click **COPY** or the password is auto-copied, then paste (⌘V)
+
+**Key layout:**
+
+| Button | Action |
+|---|---|
+| Joystick UP/DOWN | Navigate |
+| Joystick PRESS or KEY1 | OK / Select |
+| KEY2 | Back |
+| KEY3 | Home (jump to main menu) |
 
 ---
 
@@ -88,7 +111,7 @@ Open [http://localhost:3000](http://localhost:3000) in **Chrome or Edge**.
 | Route | Description |
 |---|---|
 | `/` | Landing / welcome screen |
-| `/vault` | Main vault dashboard — credential management and device sync |
+| `/vault` | Main vault — credential management and device sync |
 | `/faq` | FAQ and documentation |
 
 ---
@@ -96,113 +119,138 @@ Open [http://localhost:3000](http://localhost:3000) in **Chrome or Edge**.
 ## Project Structure
 
 ```
-northstar-companion/
+NStar-Companion/
 ├── src/
 │   ├── app/
 │   │   ├── page.tsx                       # Landing screen
-│   │   ├── vault/page.tsx                 # Vault page — credential state owner
+│   │   ├── vault/page.tsx                 # Vault — credential state and device orchestration
 │   │   ├── faq/page.tsx                   # FAQ
 │   │   └── layout.tsx                     # Root layout (dark bg, mono font)
 │   │
 │   ├── components/
-│   │   ├── auth/
-│   │   │   └── UnlockScreen.tsx           # Master password create / unlock screen
+│   │   ├── auth/UnlockScreen.tsx          # Master password create / unlock
 │   │   ├── vault/
-│   │   │   ├── CredentialList.tsx         # Scrollable list with banner header
+│   │   │   ├── CredentialList.tsx         # Scrollable credential list
 │   │   │   ├── CredentialCard.tsx         # Single row with inline confirm-delete
-│   │   │   └── AddCredentialModal.tsx     # Add / edit form with password confirm
+│   │   │   └── AddCredentialModal.tsx     # Add / edit form
 │   │   ├── device/
-│   │   │   ├── DevicePanel.tsx            # Right panel: LCD mockup, specs, EEPROM bar
+│   │   │   ├── DevicePanel.tsx            # Right panel: LCD mockup, specs, sync status
 │   │   │   ├── TransferModal.tsx          # Sync progress overlay
-│   │   │   └── PasswordReadyModal.tsx     # Shown on device SELECT (clipboard mode)
+│   │   │   └── PasswordReadyModal.tsx     # Copy modal — shown on device SELECT event
 │   │   ├── layout/
-│   │   │   ├── TopBar.tsx                 # Logo, device status badge, lock button
+│   │   │   ├── TopBar.tsx                 # Logo, device status, lock button
 │   │   │   ├── Dashboard.tsx              # Two-column layout shell
-│   │   │   └── BottomActionBar.tsx        # Sync + Add New, device-gated
-│   │   └── ui/
-│   │       └── ProgressRing.tsx           # SVG circular progress indicator
+│   │   │   └── BottomActionBar.tsx        # Sync + Add New buttons
+│   │   └── ui/ProgressRing.tsx            # SVG circular progress indicator
 │   │
 │   ├── hooks/
 │   │   ├── useVaultStorage.ts             # Encrypted localStorage vault (PBKDF2 + AES-GCM)
 │   │   └── useSerialDevice.ts             # Web Serial API: connect, pair, sync, HID events
 │   │
-│   └── types/
-│       └── credential.ts                  # Credential interface + icon options
+│   └── types/credential.ts               # Credential interface + icon options
 │
-├── arduino/
-│   ├── firmware/
-│   │   ├── northstar_hid/
-│   │   │   └── northstar_hid.ino          # ★ Main — Arduino Leonardo / Pro Micro (HID)
-│   │   └── northstar_device/
-│   │       └── northstar_device.ino       # Legacy — Elegoo Uno R3 (no HID)
-│   └── diagnostics/
-│       ├── lcd_test/
-│       │   └── lcd_test.ino               # LCD wiring diagnostic
-│       └── i2c_scanner/
-│           └── i2c_scanner.ino            # I2C address scanner
-│
-└── docs/
-    └── arduino-integration.md             # Serial protocol and hardware integration notes
+└── firmware/
+    └── northstar_pi/
+        ├── northstar_pi.py                # ★ Main firmware — Python daemon for Pi Zero 2 W
+        ├── northstar-gadget.sh            # USB composite gadget setup (ACM + HID)
+        ├── setup_usb_gadget.sh            # One-time Pi setup helper
+        ├── install.sh                     # SSH deploy script (laptop → Pi)
+        └── requirements.txt               # Python dependencies
 ```
 
 ---
 
-## Hardware Setup (Raspberry Pi Zero 2 W)
+## Firmware Setup (Raspberry Pi Zero 2 W)
 
-### Components
+### Hardware
 
 | Item | Details |
 |---|---|
-| MCU | Raspberry Pi Zero 2 W (quad-core ARM Cortex-A53, 512MB RAM) |
-| Display | Waveshare 1.3" LCD HAT — 240×240 px, ST7789 driver, SPI |
-| Input | Waveshare HAT built-in: joystick (UP/DOWN/LEFT/RIGHT/PRESS) + 3 keys |
-| Storage | 16GB microSD card |
-| Power | Official Pi Zero power supply |
-| Connectivity | OTG USB (USB HID gadget mode), WiFi, Bluetooth |
-| Case | Pi Zero case with heatsink |
+| MCU | Raspberry Pi Zero 2 W (quad-core Cortex-A53 @ 1GHz, 512MB RAM) |
+| Display | Waveshare 1.3" LCD HAT — 240×240 px, ST7789, SPI |
+| Input | Waveshare HAT built-in joystick + 3 tactile keys |
+| Storage | microSD (vault at `~/.northstar/vault.json`) |
+| USB | OTG port — composite gadget: CDC ACM serial + HID keyboard |
 
-### Display & Button Wiring
-
-The Waveshare 1.3" LCD HAT mounts directly onto the Pi Zero 2 W's 40-pin GPIO header — no individual wiring required.
-
-**LCD HAT GPIO mapping (for reference):**
+### GPIO Pin Mapping
 
 | Signal | GPIO (BCM) |
 |---|---|
-| LCD MOSI (DIN) | GPIO 10 |
-| LCD SCLK (CLK) | GPIO 11 |
-| LCD CS | GPIO 8 |
+| LCD CS | GPIO 8 (CE0) |
 | LCD DC | GPIO 25 |
 | LCD RST | GPIO 27 |
 | LCD Backlight | GPIO 24 |
-| Key 1 | GPIO 21 |
-| Key 2 | GPIO 20 |
-| Key 3 | GPIO 16 |
+| KEY1 (OK) | GPIO 21 |
+| KEY2 (Back) | GPIO 20 |
+| KEY3 (Home) | GPIO 16 |
 | Joystick UP | GPIO 6 |
 | Joystick DOWN | GPIO 19 |
-| Joystick LEFT | GPIO 5 |
-| Joystick RIGHT | GPIO 26 |
 | Joystick PRESS | GPIO 13 |
 
-### Flashing the Device
+### Pi Configuration
 
-1. Flash Raspberry Pi OS Lite (64-bit) to the 16GB microSD using Raspberry Pi Imager
-2. Enable SSH and configure your WiFi in Imager's advanced settings
-3. Enable SPI in `raspi-config` → Interface Options → SPI
-4. Enable USB OTG gadget mode by adding `dtoverlay=dwc2` to `/boot/config.txt` and `dwc2,g_hid` to `/etc/modules`
-5. Install the NorthStar firmware script and configure it to run on boot
+**`/boot/firmware/config.txt`** must include:
+```
+dtparam=spi=on
+dtoverlay=dwc2
+gpu_mem=16
+disable_splash=1
+boot_delay=0
+```
 
-> **First sync required:** After booting, the device shows "Pair via app". Open the companion app, connect via USB, and sync your credentials. After that, the device boots straight to the menu — no app needed.
+**`/boot/firmware/cmdline.txt`** must include (on one line):
+```
+modules-load=dwc2
+```
 
-### Using the Device Standalone
+### Deploying the Firmware
 
-After syncing at least once:
+```bash
+# From the repo root on your laptop:
+cd firmware/northstar_pi
 
-1. Plug the device into **any** computer (Mac, Windows, Linux — no drivers needed)
-2. The device boots directly to the account menu
-3. Navigate with UP/DOWN to your account → press SELECT
-4. **Click into the password field** on screen within 3 seconds
-5. The device types your password via USB HID
+# Copy firmware to Pi
+scp northstar_pi.py pi@<PI_IP>:/home/pi/northstar_pi.py
+
+# SSH in and install dependencies
+ssh pi@<PI_IP>
+pip3 install --break-system-packages pyserial spidev pillow RPi.GPIO
+sudo apt install -y fonts-dejavu
+
+# Set up the USB composite gadget service (run once)
+sudo cp northstar-gadget.sh /usr/local/sbin/northstar-gadget.sh
+sudo chmod +x /usr/local/sbin/northstar-gadget.sh
+# (create northstar-gadget.service + northstar.service in /etc/systemd/system)
+sudo systemctl enable northstar-gadget northstar
+sudo reboot
+```
+
+After reboot, the device appears as both a CDC ACM serial port and a USB HID keyboard.
+
+---
+
+## Sync Protocol
+
+Communication uses newline-terminated JSON at 9600 baud.
+
+```
+App    → Device : {"cmd":"REQUEST_KEY"}             # ask device to re-send PAIR if already booted
+Device → App    : {"event":"PAIR"}                  # device is ready
+App    → Device : {"cmd":"PAIR_ACK"}                # pairing confirmed
+App    → Device : {"cmd":"BEGIN","count":N,"len":L} # start sync
+Device → App    : {"ack":1}
+App    → Device : <48-byte chunk>\n                 # repeated for full payload
+Device → App    : {"ack":1}                         # per-chunk ack
+App    → Device : {"cmd":"END"}
+Device → App    : {"ack":1}                         # device saved vault to microSD
+
+Device → App    : {"event":"SELECT","idx":N}        # user selected account N on device
+```
+
+Payload sent during sync:
+```json
+{"credentials":[{"svc":"GitHub","pwd":"mypassword"},{"svc":"Gmail","pwd":"hunter2"}]}
+```
 
 ---
 
@@ -211,69 +259,12 @@ After syncing at least once:
 | Layer | Implementation |
 |---|---|
 | Vault encryption | AES-256-GCM, key derived via PBKDF2 (100,000 iterations, SHA-256) |
-| Vault key storage | Never stored — derived from master password at unlock, held in memory only |
-| Salt | 16-byte random, stored in `localStorage` alongside the ciphertext (non-secret) |
+| Master key | Never stored — derived at unlock time, held in memory only |
+| Salt | 16-byte random, stored in `localStorage` alongside ciphertext |
 | IV | 12-byte random, freshly generated on every save |
-| Device storage | Plaintext on microSD — physical access control (biometric auth planned) |
-| Sync transport | USB serial cable (physical layer); passwords travel over the cable during sync |
+| Device storage | Plaintext JSON on microSD — physical possession is the security boundary |
+| Sync transport | USB serial cable (physical), point-to-point |
 | Browser support | Chrome / Edge only (Web Serial API + Web Crypto API) |
-
-**What the browser knows:** encrypted blob in `localStorage`. Without the master password, it is unreadable.
-**What the device knows:** plaintext credentials on microSD. Physical possession of the device is the security boundary (biometric gate planned for a future revision).
-
----
-
-## Device Storage Layout
-
-Credentials are stored as a JSON file on the microSD (e.g. `/home/pi/vault.json`), synced from the companion app over USB serial.
-
-```json
-{
-  "credentials": [
-    { "svc": "GitHub", "pwd": "mypassword" },
-    { "svc": "Gmail",  "pwd": "hunter2"    }
-  ]
-}
-```
-
-Max entries: limited by microSD capacity (effectively unlimited at ~16GB).
-
----
-
-## Sync Protocol
-
-Communication uses newline-terminated JSON over 9600-baud serial.
-
-```
-App  → Device : {"cmd":"REQUEST_KEY"}       # ask device to re-send PAIR if already booted
-Device → App  : {"event":"PAIR"}            # device announces it is ready
-App  → Device : {"cmd":"PAIR_ACK"}          # app confirms pairing
-App  → Device : {"cmd":"BEGIN","count":N,"len":BYTES}
-Device → App  : {"ack":1}
-App  → Device : <48-byte JSON chunk>\n      # repeated until full payload sent
-Device → App  : {"ack":1}                   # after each chunk
-App  → Device : {"cmd":"END"}
-Device → App  : {"ack":1}                   # device has written to EEPROM
-```
-
-Payload format:
-```json
-{"credentials":[{"svc":"GitHub","pwd":"mypassword"},{"svc":"Gmail","pwd":"hunter2"}]}
-```
-
----
-
-## Current Hardware
-
-| Component | Part |
-|---|---|
-| MCU | Raspberry Pi Zero 2 W (quad-core ARM Cortex-A53 @ 1GHz, 512MB RAM) |
-| Display | Waveshare 1.3" LCD HAT — 240×240 px, ST7789, SPI |
-| Input | Built-in joystick (4-way + press) + 3 tactile keys |
-| Storage | 16GB microSD |
-| Power | Official Raspberry Pi Zero power supply |
-| Connectivity | USB OTG (HID gadget), WiFi 802.11 b/g/n, Bluetooth 4.2 |
-| Enclosure | Pi Zero case with heatsink |
 
 ---
 
@@ -284,8 +275,8 @@ Payload format:
 | Framework | Next.js 15 (App Router) |
 | Styling | Tailwind CSS v4 |
 | Language | TypeScript |
-| Crypto | Web Crypto API (PBKDF2, AES-256-GCM) — browser-native, no libraries |
-| Hardware comms | Web Serial API — browser-native, no Node.js backend |
-| Firmware | Python (`python-evdev`, `st7789`, `RPi.GPIO`) running on Raspberry Pi OS Lite |
+| Crypto | Web Crypto API — browser-native, no libraries |
+| Hardware comms | Web Serial API — browser-native, no backend |
+| Firmware | Python 3 (`spidev`, `RPi.GPIO`, `Pillow`, `pyserial`) on Raspberry Pi OS Lite (64-bit) |
 | Backend | None |
 | Database | None |

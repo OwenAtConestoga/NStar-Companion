@@ -12,6 +12,16 @@ export default function PasswordReadyModal({ credential, onDismiss }: PasswordRe
   const [show,   setShow]   = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Attempt auto-copy on open — succeeds if the tab is focused.
+  // If the user has already switched to another app, clipboard.writeText will
+  // reject; we fall back gracefully and let them use the COPY button.
+  useEffect(() => {
+    if (!credential.password) return;
+    navigator.clipboard.writeText(credential.password)
+      .then(() => setCopied(true))
+      .catch(() => { /* tab not focused — COPY button is the fallback */ });
+  }, [credential.password]);
+
   // Auto-dismiss after 30 seconds if user doesn't interact
   useEffect(() => {
     const t = setTimeout(onDismiss, 30_000);
@@ -76,7 +86,7 @@ export default function PasswordReadyModal({ credential, onDismiss }: PasswordRe
                     : "bg-green-500 hover:bg-green-400 text-black"
                 }`}
               >
-                {copied ? "✓ COPIED — PASTE NOW" : "COPY PASSWORD"}
+                {copied ? "✓ COPIED — PASTE NOW (⌘V / Ctrl+V)" : "COPY PASSWORD"}
               </button>
               <button
                 onClick={onDismiss}
