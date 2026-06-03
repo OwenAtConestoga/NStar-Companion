@@ -16,12 +16,15 @@ interface DevicePanelProps {
 const MAX_SLOTS = 20;
 
 // ── LCD Simulator ─────────────────────────────────────────────────────────────
-// Mirrors northstar_hid.ino state machine.
-// Home menu: Accounts · Device · Settings · Delete All
+// Mirrors firmware button mapping exactly:
+//   JOY UP/DOWN → cycle (wraps)   KEY1 → select/enter   KEY2 → back
 
-type MenuScreen = "home" | "list" | "detail" | "typing" | "device" | "settings" | "deleteConfirm";
+type MenuScreen =
+  | "home" | "accounts" | "detail" | "typing" | "sent"
+  | "removeConfirm" | "delAllConfirm" | "settings" | "info";
 
-const HOME_MENU = ["Accounts", "Device", "Settings", "Delete All"] as const;
+const HOME_MENU     = ["// accounts", "// settings", "// delete all"] as const;
+const SETTINGS_MENU = ["// device info"] as const;
 
 function lcdPad(s: string): string {
   return s.slice(0, 16).padEnd(16, " ");
@@ -32,65 +35,89 @@ function useLCDSimulator(credentials: Credential[]) {
   const [cursor,    setCursor]    = useState(0);
   const [countdown, setCountdown] = useState(3);
 
-  // When credentials shrink to 0, bail back to home
+  // If creds removed while browsing accounts, go home
   useEffect(() => {
-    if (credentials.length === 0 && screen === "list") {
+    if (credentials.length === 0 && screen === "accounts") {
       setCursor(0); setScreen("home");
     }
   }, [credentials.length, screen]);
 
-  // Typing countdown → return to list
+  // Typing countdown → sent
   useEffect(() => {
     if (screen !== "typing") return;
     let count = 3;
     setCountdown(count);
     const id = setInterval(() => {
       count -= 1;
-      if (count <= 0) { clearInterval(id); setScreen("list"); }
+      if (count <= 0) { clearInterval(id); setScreen("sent"); }
       else            { setCountdown(count); }
     }, 1000);
     return () => clearInterval(id);
   }, [screen]);
 
-  const pressUp = useCallback(() => {
-    if (screen === "home")         setCursor((c) => Math.max(0, c - 1));
-    if (screen === "list")         setCursor((c) => Math.max(0, c - 1));
-    if (screen === "deleteConfirm") setCursor((c) => (c === 0 ? 1 : 0));
+  // Sent → back to detail (mirrors firmware: 1.8s then S.DETAIL)
+  useEffect(() => {
+    if (screen !== "sent") return;
+    const t = setTimeout(() => setScreen("detail"), 1800);
+    return () => clearTimeout(t);
   }, [screen]);
 
-  const pressDown = useCallback(() => {
-    if (screen === "home")          setCursor((c) => Math.min(HOME_MENU.length - 1, c + 1));
-    if (screen === "list")          setCursor((c) => Math.min(credentials.length - 1, c + 1));
-    if (screen === "deleteConfirm") setCursor((c) => (c === 0 ? 1 : 0));
+  // Compute menu size for the current screen (used for wrap-around cycling)
+  const menuSz = useCallback((): number => {
+    if (screen === "home")                                          return HOME_MENU.length;
+    if (screen === "accounts")                                      return credentials.length + 1; // +1 for "remove all"
+    if (screen === "settings")                                      return SETTINGS_MENU.length;
+    if (screen === "removeConfirm" || screen === "delAllConfirm")   return 2; // YES / NO
+    return 1;
   }, [screen, credentials.length]);
 
-  const pressBack = useCallback(() => {
-    if (screen === "list")          { setScreen("home");     setCursor(0); }
-    if (screen === "detail")        { setScreen("list");     setCursor(0); }
-    if (screen === "device")        { setScreen("home");     setCursor(1); }
-    if (screen === "settings")      { setScreen("home");     setCursor(2); }
-    if (screen === "deleteConfirm") { setScreen("home");     setCursor(3); }
-  }, [screen]);
+  // JOY UP — cycle up (wraps)
+  const pressUp = useCallback(() => {
+    const sz = menuSz();
+    if (sz > 1) setCursor((c) => (c - 1 + sz) % sz);
+  }, [menuSz]);
 
+  // JOY DOWN — cycle down (wraps)
+  const pressDown = useCallback(() => {
+    const sz = menuSz();
+    if (sz > 1) setCursor((c) => (c + 1) % sz);
+  }, [menuSz]);
+
+  // KEY1 — select / enter
   const pressSelect = useCallback(() => {
     if (screen === "home") {
-      if (cursor === 0) { setScreen("list");          setCursor(0); }
-      if (cursor === 1)   setScreen("device");
-      if (cursor === 2)   setScreen("settings");
-      if (cursor === 3) { setScreen("deleteConfirm"); setCursor(1); } // default NO
-    }
-    if (screen === "list"   && credentials.length > 0) setScreen("detail");
-    if (screen === "detail")                            setScreen("typing");
-    if (screen === "deleteConfirm") {
-      // YES = cursor 0, NO = cursor 1
-      setScreen("home");
-      setCursor(3);
+      if (cursor === 0) { setScreen("accounts");      setCursor(0); }
+      if (cursor === 1) { setScreen("settings");      setCursor(0); }
+      if (cursor === 2) { setScreen("delAllConfirm"); setCursor(1); } // default NO
+    } else if (screen === "accounts") {
+      if (credentials.length === 0) return;
+      if (cursor < credentials.length) setScreen("detail");
+      else                             { setScreen("removeConfirm"); setCursor(1); } // default NO
+    } else if (screen === "detail") {
+      setScreen("typing");
+    } else if (screen === "removeConfirm") {
+      // simulator: both YES and NO just go back (can't wipe device from sim)
+      setScreen("accounts"); setCursor(0);
+    } else if (screen === "settings") {
+      if (cursor === 0) setScreen("info");
+    } else if (screen === "delAllConfirm") {
+      if (cursor === 0) { setScreen("home"); setCursor(0); }
+      else              { setScreen("home"); setCursor(2); }
     }
   }, [screen, cursor, credentials.length]);
 
-  // Build LCD rows
+  // KEY2 — back
+  const pressBack = useCallback(() => {
+    if (screen === "accounts" || screen === "settings" || screen === "delAllConfirm") {
+      setScreen("home");     setCursor(0);
+    } else if (screen === "detail" || screen === "removeConfirm") {
+      setScreen("accounts"); setCursor(0);
+    } else if (screen === "info") {
+      setScreen("settings"); setCursor(0);
+    }
+  }, [screen]);
+
   const listCred = credentials[cursor];
-  const listNext = credentials[cursor + 1];
 
   let line1 = "";
   let line2 = "";
@@ -98,51 +125,57 @@ function useLCDSimulator(credentials: Credential[]) {
   switch (screen) {
     case "home":
       line1 = lcdPad("NorthStar Auth");
-      line2 = lcdPad(`~${HOME_MENU[cursor]}`);
+      line2 = lcdPad(HOME_MENU[cursor]);
       break;
-    case "list":
+    case "accounts":
       if (credentials.length === 0) {
-        line1 = lcdPad("  Empty vault");
-        line2 = lcdPad("  Add accounts");
-      } else {
+        line1 = lcdPad("  no accounts");
+        line2 = lcdPad("  sync to add");
+      } else if (cursor < credentials.length) {
         line1 = lcdPad(`~${listCred.serviceName}`);
-        line2 = lcdPad(listNext ? `  ${listNext.serviceName}` : `  (${cursor + 1}/${credentials.length})`);
+        line2 = lcdPad(`  ${listCred.username}`);
+      } else {
+        line1 = lcdPad("~// remove all");
+        line2 = lcdPad(`  ${credentials.length} account${credentials.length !== 1 ? "s" : ""}`);
       }
       break;
     case "detail":
       line1 = lcdPad(`~${listCred?.serviceName ?? ""}`);
-      line2 = lcdPad(`  ${listCred?.username ?? ""}`);
+      line2 = lcdPad("  K1=send K2=back");
       break;
     case "typing":
       line1 = lcdPad(`~${listCred?.serviceName ?? ""}`);
-      line2 = lcdPad(`  Typing in ${countdown}...`);
+      line2 = lcdPad(`  typing... ${countdown}s`);
       break;
-    case "device":
-      line1 = lcdPad("~Device Info");
-      line2 = lcdPad("  NSA HID v1.0");
+    case "sent":
+      line1 = lcdPad(`~${listCred?.serviceName ?? ""}`);
+      line2 = lcdPad("  sent! returning");
+      break;
+    case "removeConfirm":
+      line1 = lcdPad("// remove all?");
+      line2 = lcdPad(cursor === 0 ? "~YES    no    " : "  yes   ~NO   ");
+      break;
+    case "delAllConfirm":
+      line1 = lcdPad("// delete all?");
+      line2 = lcdPad(cursor === 0 ? "~YES    no    " : "  yes   ~NO   ");
       break;
     case "settings":
-      line1 = lcdPad("~Settings");
-      line2 = lcdPad(`  ${credentials.length}/${MAX_SLOTS} accounts`);
+      line1 = lcdPad("~// settings");
+      line2 = lcdPad(`  ${SETTINGS_MENU[cursor]}`);
       break;
-    case "deleteConfirm":
-      line1 = lcdPad("Delete All?");
-      line2 = lcdPad(cursor === 0 ? "~YES    no    " : "  yes   ~NO   ");
+    case "info":
+      line1 = lcdPad("~// device info");
+      line2 = lcdPad("  Pi Zero 2 W");
       break;
   }
 
-  const canUp = (screen === "home" && cursor > 0)
-    || (screen === "list" && cursor > 0)
-    || screen === "deleteConfirm";
-
-  const canDown = (screen === "home" && cursor < HOME_MENU.length - 1)
-    || (screen === "list" && cursor < credentials.length - 1)
-    || screen === "deleteConfirm";
-
-  const canBack   = screen !== "home" && screen !== "typing";
-  const canSelect = screen !== "typing"
-    && !(screen === "home" && cursor === 0 && credentials.length === 0);
-  const isTyping  = screen === "typing";
+  const isTyping  = screen === "typing" || screen === "sent";
+  const sz        = menuSz();
+  const canUp     = sz > 1 && !isTyping;
+  const canDown   = sz > 1 && !isTyping;
+  const canBack   = screen !== "home" && !isTyping;
+  const canSelect = !isTyping && screen !== "info"
+    && !(screen === "accounts" && credentials.length === 0);
 
   return { line1, line2, screen, cursor, pressUp, pressDown, pressBack, pressSelect, canUp, canDown, canBack, canSelect, isTyping };
 }
@@ -161,44 +194,47 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
     canUp, canDown, canBack, canSelect, isTyping,
   } = useLCDSimulator(credentials);
 
+  // Buttons always work — simulator is available regardless of pairing state
   const buttons = [
-    { label: "↑", action: pressUp,     title: "UP",     enabled: canUp    },
-    { label: "↓", action: pressDown,   title: "DOWN",   enabled: canDown  },
-    { label: "←", action: pressBack,   title: "BACK",   enabled: canBack  },
-    { label: "→", action: pressSelect, title: "SELECT", enabled: canSelect },
+    { label: "↑",  action: pressUp,     title: "UP",     enabled: canUp    },
+    { label: "↓",  action: pressDown,   title: "DOWN",   enabled: canDown  },
+    { label: "K1", action: pressSelect, title: "ENTER",  enabled: canSelect },
+    { label: "K2", action: pressBack,   title: "BACK",   enabled: canBack  },
   ];
 
   const hint: Record<MenuScreen, string> = {
-    home:          "↑↓ scroll menu · → select",
-    list:          "↑↓ scroll · → select · ← back",
-    detail:        "→ to simulate typing · ← back",
-    typing:        "simulating HID keystroke...",
-    device:        "← back to menu",
-    settings:      "← back to menu",
-    deleteConfirm: "↑↓ YES/NO · → confirm · ← back",
+    home:          "↑↓ cycle · K1 select",
+    accounts:      "↑↓ cycle · K1 select · K2 back",
+    detail:        "K1 send · K2 back",
+    typing:        "typing credentials...",
+    sent:          "sent — returning to detail",
+    removeConfirm: "↑↓ YES/NO · K1 confirm · K2 back",
+    delAllConfirm: "↑↓ YES/NO · K1 confirm · K2 back",
+    settings:      "↑↓ cycle · K1 select · K2 back",
+    info:          "K2 back",
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full overflow-y-auto">
+    <div className="flex flex-col gap-6 p-5 h-full overflow-y-auto">
 
       {/* Header */}
       <div>
         <p className="text-green-400 font-mono text-xs tracking-widest uppercase mb-0.5">// Device</p>
-        <h2 className="text-zinc-100 font-mono text-lg font-bold">NorthStar HID</h2>
-        <p className="text-zinc-500 font-mono text-xs">Arduino Leonardo · ATmega32U4</p>
+        <h2 className="text-zinc-100 font-mono text-lg font-bold">NorthStar Auth</h2>
+        <p className="text-zinc-500 font-mono text-xs">Pi Zero 2 W · Waveshare 1.3" LCD</p>
       </div>
 
       {/* LCD Simulator */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-zinc-500 font-mono text-xs">// LCD Simulator</p>
-          <p className="text-zinc-700 font-mono text-xs">mirrors device firmware</p>
+          <p className="text-zinc-700 font-mono text-xs">mirrors firmware</p>
         </div>
 
         <div className="rounded-lg overflow-hidden border-2 border-zinc-600 shadow-inner">
           {/* Bezel top */}
           <div className="bg-zinc-800 px-3 py-1.5 flex items-center justify-between border-b border-zinc-700">
-            <span className="text-zinc-500 font-mono text-xs">LCD 16×2</span>
+            <span className="text-zinc-500 font-mono text-xs">240×240 LCD</span>
             <span className={`w-2 h-2 rounded-full ${
               isPaired ? "bg-green-500 animate-pulse" : isConnected ? "bg-yellow-500 animate-pulse" : "bg-zinc-600"
             }`} />
@@ -218,7 +254,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
                 onClick={action}
                 title={title}
                 disabled={!enabled || isTyping}
-                className={`w-9 h-7 border rounded-sm flex items-center justify-center font-mono text-sm select-none transition-all ${
+                className={`min-w-[2rem] px-2 h-7 border rounded-sm flex items-center justify-center font-mono text-xs select-none transition-all ${
                   enabled && !isTyping
                     ? "bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 border-zinc-500 hover:border-zinc-400 text-zinc-100 cursor-pointer"
                     : "bg-zinc-800 border-zinc-700 text-zinc-600 cursor-not-allowed"
@@ -233,24 +269,21 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
         <p className="text-zinc-600 font-mono text-xs mt-1.5 text-center">{hint[screen]}</p>
       </div>
 
-      {/* Context panel — content changes with LCD screen / cursor position */}
+      {/* Context panel */}
       {(() => {
-        const isDeviceCtx   = screen === "device"        || (screen === "home" && cursor === 1);
-        const isSettingsCtx = screen === "settings"      || (screen === "home" && cursor === 2);
-        const isDeleteCtx   = screen === "deleteConfirm" || (screen === "home" && cursor === 3);
+        const isSettingsCtx = screen === "settings" || screen === "info"       || (screen === "home" && cursor === 1);
+        const isDeleteCtx   = screen === "delAllConfirm" || screen === "removeConfirm" || (screen === "home" && cursor === 2);
 
-        if (isDeviceCtx) return (
+        if (isSettingsCtx && screen === "info") return (
           <div>
             <p className="text-zinc-500 font-mono text-xs mb-3">// Device Info</p>
-            <p className="text-zinc-400 font-mono text-xs leading-relaxed mb-3">
-              NorthStar HID stores credentials in EEPROM and types passwords via native USB HID — no drivers, no software required on the target machine.
-            </p>
             <div className="flex flex-col gap-1.5">
               {[
-                { label: "Protocol", value: "USB HID Keyboard" },
-                { label: "Storage",  value: "1KB EEPROM · 20 slots" },
-                { label: "Display",  value: "LCD 16×2 parallel" },
-                { label: "MCU",      value: "ATmega32U4" },
+                { label: "Board",   value: "Pi Zero 2 W" },
+                { label: "Display", value: "Waveshare 1.3\" 240×240" },
+                { label: "Input",   value: "Joystick + 3 keys" },
+                { label: "USB",     value: "CDC ACM + HID keyboard" },
+                { label: "Storage", value: "microSD · 20 slots" },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-baseline justify-between gap-2">
                   <span className="text-zinc-600 font-mono text-xs">{label}</span>
@@ -265,9 +298,6 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
         if (isSettingsCtx) return (
           <div>
             <p className="text-zinc-500 font-mono text-xs mb-3">// Settings</p>
-            <p className="text-zinc-400 font-mono text-xs leading-relaxed mb-3">
-              On the device, Settings shows your account count. Manage credentials in the web vault, then sync to update the device.
-            </p>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-zinc-600 font-mono text-xs">Staged</span>
@@ -289,12 +319,11 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
           <div className="bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-3">
             <p className="text-red-400 font-mono text-xs mb-2">// Delete All</p>
             <p className="text-zinc-400 font-mono text-xs leading-relaxed">
-              Erases <strong className="text-zinc-200">all accounts</strong> from device EEPROM. Your web vault is unaffected — the device will be empty until you sync again.
+              Erases all accounts from the device. Your web vault is unaffected.
             </p>
           </div>
         );
 
-        // Accounts context: home cursor=0, list, detail, typing
         const filtered = credentials.filter((c) =>
           c.serviceName.toLowerCase().includes(search.toLowerCase()) ||
           c.username.toLowerCase().includes(search.toLowerCase())
@@ -302,7 +331,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
         return (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-zinc-500 font-mono text-xs flex-shrink-0">// Staged Accounts</p>
+              <p className="text-zinc-500 font-mono text-xs flex-shrink-0">// Staged</p>
               <input
                 type="text"
                 value={search}
@@ -321,7 +350,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
               <div className="flex flex-col gap-1">
                 {filtered.map((cred) => {
                   const originalIdx = credentials.indexOf(cred);
-                  const isCursorActive = screen === "list" && cursor === originalIdx;
+                  const isCursorActive = screen === "accounts" && cursor === originalIdx;
                   const isSynced = lastSync !== null && cred.createdAt
                     ? new Date(cred.createdAt) <= new Date(lastSync.at)
                     : lastSync !== null;
@@ -389,14 +418,13 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
         )}
       </div>
 
-      {/* Last sync + sync button */}
+      {/* Last sync */}
       {(() => {
-        const needsSync = isPaired && lastSync !== null && lastSync.count !== staged;
+        const needsSync   = isPaired && lastSync !== null && lastSync.count !== staged;
         const neverSynced = lastSync === null;
-        const syncDate = lastSync ? new Date(lastSync.at).toLocaleString("en-CA", {
+        const syncDate    = lastSync ? new Date(lastSync.at).toLocaleString("en-CA", {
           month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
         }) : null;
-
         return (
           <div className={`rounded-lg px-4 py-3 border font-mono text-xs flex flex-col gap-2 ${
             needsSync ? "bg-yellow-500/5 border-yellow-500/20" : "bg-zinc-900 border-zinc-800"
@@ -404,10 +432,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
             <div className="flex items-center justify-between">
               <span className="text-zinc-500">// Last Sync</span>
               {isPaired && (
-                <button
-                  onClick={onSync}
-                  className="text-green-500 hover:text-green-400 border border-green-500/40 hover:border-green-500 px-2 py-0.5 rounded transition-colors text-xs"
-                >
+                <button onClick={onSync} className="text-green-500 hover:text-green-400 border border-green-500/40 hover:border-green-500 px-2 py-0.5 rounded transition-colors text-xs">
                   SYNC NOW
                 </button>
               )}
@@ -420,17 +445,15 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
                 <p className="text-zinc-600">{lastSync!.count} account{lastSync!.count !== 1 ? "s" : ""} pushed</p>
               </div>
             )}
-            {needsSync && (
-              <p className="text-yellow-400 text-xs">⚠ Credentials changed since last sync — device may be out of date.</p>
-            )}
+            {needsSync && <p className="text-yellow-400 text-xs">⚠ Credentials changed — device may be out of date.</p>}
           </div>
         );
       })()}
 
-      {/* EEPROM usage */}
+      {/* Storage bar */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-zinc-400 font-mono text-xs">// EEPROM Slots</span>
+          <span className="text-zinc-400 font-mono text-xs">// Storage Slots</span>
           <span className="text-zinc-300 font-mono text-xs">{staged} / {MAX_SLOTS}</span>
         </div>
         <div className="bg-zinc-800 rounded px-2 py-1 font-mono text-xs text-green-500 tracking-widest">
@@ -438,7 +461,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
           <span className="text-zinc-500 ml-2">{fillPct}%</span>
         </div>
         <p className="text-zinc-600 font-mono text-xs mt-1">
-          {MAX_SLOTS - staged} slot{MAX_SLOTS - staged !== 1 ? "s" : ""} remaining · 1KB total
+          {MAX_SLOTS - staged} slot{MAX_SLOTS - staged !== 1 ? "s" : ""} remaining
         </p>
       </div>
 
@@ -447,12 +470,12 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
         <p className="text-zinc-400 font-mono text-xs mb-3">// Hardware Specs</p>
         <div className="flex flex-col gap-2">
           {[
-            { label: "Board",   value: "Arduino Leonardo" },
-            { label: "MCU",     value: "ATmega32U4" },
-            { label: "USB",     value: "HID + CDC Serial" },
-            { label: "Storage", value: "1KB EEPROM" },
-            { label: "Display", value: "LCD 16×2 parallel" },
-            { label: "Buttons", value: "4 (UP/DN/BACK/SEL)" },
+            { label: "Board",   value: "Raspberry Pi Zero 2 W" },
+            { label: "CPU",     value: "Cortex-A53 @ 1GHz" },
+            { label: "RAM",     value: "512MB" },
+            { label: "Display", value: "Waveshare 1.3\" 240×240" },
+            { label: "Input",   value: "Joystick + KEY1/2/3" },
+            { label: "USB",     value: "CDC ACM + HID" },
             { label: "Baud",    value: "9600" },
             { label: "Vault",   value: "AES-256-GCM PBKDF2" },
           ].map(({ label, value }) => (
@@ -465,7 +488,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
         </div>
       </div>
 
-      {/* Standalone use */}
+      {/* Standalone guide */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
         <p className="text-green-400 font-mono text-xs tracking-widest mb-2">// Standalone Use</p>
         <ol className="text-zinc-500 font-mono text-xs space-y-1 list-none">
@@ -473,7 +496,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
           <li>2. Unplug — carry anywhere</li>
           <li>3. Plug into any computer</li>
           <li>4. Navigate → SELECT account</li>
-          <li>5. Click target field → password types</li>
+          <li>5. K1 → types username + password</li>
         </ol>
       </div>
 

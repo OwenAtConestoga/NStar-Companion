@@ -9,16 +9,16 @@ export interface Credential {
 
 
 export const ICON_OPTIONS = [
-  { char: "⌥", label: "Key" },
-  { char: "@", label: "Email" },
-  { char: "▲", label: "Cloud" },
-  { char: "◈", label: "Shield" },
-  { char: "✦", label: "Star" },
-  { char: "◉", label: "Target" },
-  { char: "⬡", label: "Hex" },
-  { char: "$", label: "Finance" },
-  { char: "✉", label: "Mail" },
-  { char: "⚙", label: "Config" },
-  { char: "◆", label: "Diamond" },
-  { char: "⬤", label: "Circle" },
+  { char: "@",  label: "Email" },
+  { char: "✉",  label: "Mail" },
+  { char: "$",  label: "Finance" },
+  { char: "⚙",  label: "Work / Config" },
+  { char: "☁",  label: "Cloud" },
+  { char: "☎",  label: "Phone" },
+  { char: "◉",  label: "Social" },
+  { char: "♟",  label: "Gaming" },
+  { char: "◆",  label: "Shopping" },
+  { char: "≡",  label: "Dev / Code" },
+  { char: "◈",  label: "Security" },
+  { char: "✦",  label: "Misc" },
 ];

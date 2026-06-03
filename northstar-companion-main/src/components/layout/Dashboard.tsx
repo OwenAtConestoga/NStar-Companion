@@ -7,6 +7,7 @@ import DevicePanel from "@/components/device/DevicePanel";
 
 interface DashboardProps {
   credentials: Credential[];
+  profileName: string;
   onInitiateSync: () => void;
   onAddNew: () => void;
   onEdit: (id: string) => void;
@@ -17,11 +18,14 @@ interface DashboardProps {
   onConnect: () => void;
   onDisconnect: () => void;
   onLock: () => void;
+  onSwitchProfile: () => void;
+  onChangePassword: () => void;
   lastSync: LastSync | null;
 }
 
 export default function Dashboard({
   credentials,
+  profileName,
   onInitiateSync,
   onAddNew,
   onEdit,
@@ -32,6 +36,8 @@ export default function Dashboard({
   onConnect,
   onDisconnect,
   onLock,
+  onSwitchProfile,
+  onChangePassword,
   lastSync,
 }: DashboardProps) {
   return (
@@ -40,12 +46,14 @@ export default function Dashboard({
         isConnected={isConnected}
         isPaired={isPaired}
         isSupported={isSupported}
+        profileName={profileName}
         onConnect={onConnect}
         onDisconnect={onDisconnect}
         onLock={onLock}
+        onSwitchProfile={onSwitchProfile}
+        onChangePassword={onChangePassword}
       />
 
-      {/* Body — single column on small screens, two columns on xl+ */}
       <div className="flex flex-1 overflow-hidden">
 
         {/* Left: credential list + action bar */}
@@ -59,8 +67,8 @@ export default function Dashboard({
           />
         </div>
 
-        {/* Right: device panel — visible on lg screens (≥1024px) */}
-        <div className="hidden lg:flex lg:flex-col w-1/5 min-w-72 border-l border-zinc-800 flex-shrink-0 overflow-hidden">
+        {/* Right: device panel */}
+        <div className="hidden lg:flex lg:flex-col w-1/4 min-w-64 max-w-80 border-l border-zinc-800 flex-shrink-0 overflow-hidden">
           <DevicePanel
             credentials={credentials}
             isConnected={isConnected}

@@ -199,7 +199,7 @@ export function useSerialDevice() {
       setSyncState({ phase: "encrypting", progress: 5, statusLine: "// Building payload..." });
 
       const payload     = JSON.stringify({
-        credentials: credentials.map((c) => ({ svc: c.serviceName, pwd: c.password })),
+        credentials: credentials.map((c) => ({ svc: c.serviceName, usr: c.username, pwd: c.password })),
       });
       const CHUNK_SIZE  = 48;
       const totalChunks = Math.ceil(payload.length / CHUNK_SIZE);
