@@ -19,23 +19,13 @@ export default function BottomActionBar({
   let buttonLabel: string;
   let hintLine: string | null = null;
 
-  if (canSync) {
-    buttonLabel = "INITIATE SECURE SYNC >";
-  } else if (waiting) {
-    buttonLabel = "WAITING FOR DEVICE PAIRING...";
-    hintLine = "// Device connected — waiting for PAIR key from device";
-  } else {
-    buttonLabel = "NO DEVICE CONNECTED";
-    hintLine = "// Connect a NorthStar device via USB to enable sync";
-  }
-
   return (
-    <div className="flex flex-col gap-2 px-6 py-4 border-t border-zinc-800 flex-shrink-0">
+    <div className="flex flex-col gap-2 px-4 sm:px-6 py-4 border-t border-zinc-800 flex-shrink-0">
       <div className="flex items-center gap-3">
         <button
           onClick={onInitiateSync}
           disabled={!canSync}
-          className={`flex-1 font-bold font-mono px-6 py-3 rounded transition-colors
+          className={`flex-1 min-w-0 font-bold font-mono px-4 py-3 rounded transition-colors truncate
             ${canSync
               ? "bg-green-500 hover:bg-green-400 text-black"
               : waiting
@@ -43,17 +33,23 @@ export default function BottomActionBar({
               : "bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed"
             }`}
         >
-          {buttonLabel}
+          {canSync   ? "SYNC TO DEVICE >"
+          : waiting  ? "WAITING FOR PAIRING..."
+          :            "NO DEVICE CONNECTED"}
         </button>
         <button
           onClick={onAddNew}
-          className="border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 font-mono px-4 py-3 rounded transition-colors"
+          className="flex-shrink-0 border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 font-mono px-4 py-3 rounded transition-colors whitespace-nowrap"
         >
           + Add New
         </button>
       </div>
-      {hintLine && (
-        <p className="text-zinc-600 font-mono text-xs text-center">{hintLine}</p>
+      {!canSync && (
+        <p className="text-zinc-600 font-mono text-xs text-center truncate">
+          {waiting
+            ? "// Device connected — waiting for PAIR key"
+            : "// Connect a NorthStar device via USB to sync"}
+        </p>
       )}
     </div>
   );
