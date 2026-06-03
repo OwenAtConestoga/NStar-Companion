@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import Dashboard from "@/components/layout/Dashboard";
 import TransferModal from "@/components/device/TransferModal";
 import AddCredentialModal from "@/components/vault/AddCredentialModal";
+import ImportModal from "@/components/vault/ImportModal";
 import UnlockScreen from "@/components/auth/UnlockScreen";
 import ProfileSelect from "@/components/auth/ProfileSelect";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
@@ -30,10 +31,12 @@ export default function VaultPage() {
   const {
     status, credentials, unlockError,
     createVault, unlock, saveCredentials, changePassword, lock,
+    exportVault, importVault,
   } = useVaultStorage(profileId || "default");
 
   const [isTransferring, setIsTransferring]       = useState(false);
   const [isAddingNew, setIsAddingNew]             = useState(false);
+  const [isImporting, setIsImporting]             = useState(false);
   const [editingCredential, setEditingCredential] = useState<Credential | null>(null);
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
 
@@ -74,6 +77,10 @@ export default function VaultPage() {
     setIsTransferring(false);
     resetSync();
   }, [resetSync]);
+
+  const handleExport = useCallback(() => {
+    exportVault(activeProfile?.name ?? "vault");
+  }, [exportVault, activeProfile]);
 
   const handleLock = useCallback(() => {
     lock();
@@ -137,6 +144,8 @@ export default function VaultPage() {
         onLock={handleLock}
         onSwitchProfile={handleSwitchProfile}
         onChangePassword={() => setShowChangePwd(true)}
+        onExport={handleExport}
+        onImport={() => setIsImporting(true)}
         lastSync={lastSync}
       />
 
@@ -172,6 +181,13 @@ export default function VaultPage() {
         <ChangePasswordModal
           onSave={changePassword}
           onClose={() => setShowChangePwd(false)}
+        />
+      )}
+
+      {isImporting && (
+        <ImportModal
+          onImport={importVault}
+          onClose={() => setIsImporting(false)}
         />
       )}
     </>

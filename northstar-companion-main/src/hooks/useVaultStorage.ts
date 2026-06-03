@@ -191,5 +191,43 @@ export function useVaultStorage(profileId: string) {
     setStatus("new");
   }, [storageKey, sessionKey]);
 
-  return { status, credentials, unlockError, createVault, unlock, saveCredentials, changePassword, lock, wipeVault };
+  const exportVault = useCallback((profileName: string) => {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return;
+    const backup = {
+      version: "1",
+      profile: profileName,
+      vault: JSON.parse(raw),
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `nstar-${profileName.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.nstar`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [storageKey]);
+
+  const importVault = useCallback(async (fileContent: string, password: string): Promise<string | null> => {
+    try {
+      const backup = JSON.parse(fileContent);
+      if (!backup.vault?.salt || !backup.vault?.payload) return "Invalid backup file.";
+      const stored: StoredVault = backup.vault;
+      const salt = fromB64(stored.salt);
+      const key  = await deriveKey(password, salt);
+      const creds = (await decryptJSON(stored.payload, key)) as Credential[];
+      localStorage.setItem(storageKey, JSON.stringify(stored));
+      keyRef.current  = key;
+      saltRef.current = salt;
+      await persistSession(key, sessionKey);
+      setCredentials(creds);
+      setStatus("unlocked");
+      return null;
+    } catch {
+      return "Could not decrypt backup — check the password and try again.";
+    }
+  }, [storageKey, sessionKey]);
+
+  return { status, credentials, unlockError, createVault, unlock, saveCredentials, changePassword, lock, wipeVault, exportVault, importVault };
 }

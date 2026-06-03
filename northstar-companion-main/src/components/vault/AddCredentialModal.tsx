@@ -60,6 +60,15 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
     onAdd({ serviceName: serviceName.trim(), username: username.trim(), password, icon: selectedIcon });
   }
 
+  function generatePassword() {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+";
+    const bytes   = crypto.getRandomValues(new Uint8Array(20));
+    const pwd     = Array.from(bytes).map((b) => charset[b % charset.length]).join("");
+    setPassword(pwd);
+    setConfirmPassword(pwd);
+    setShowPassword(true);
+  }
+
   function fieldBorder(mismatch: boolean, ok: boolean) {
     if (mismatch) return "border-red-500/60 focus:border-red-500";
     if (ok)       return "border-green-500/60 focus:border-green-500";
@@ -163,10 +172,19 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
 
           {/* Password */}
           <div>
-            <label className="text-zinc-400 font-mono text-xs block mb-1.5">
-              // Password
-              <span className="text-zinc-600 ml-2">(sent to device, stored encrypted in vault)</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-zinc-400 font-mono text-xs">
+                // Password
+                <span className="text-zinc-600 ml-2">(sent to device, stored encrypted)</span>
+              </label>
+              <button
+                type="button"
+                onClick={generatePassword}
+                className="font-mono text-xs text-green-500 hover:text-green-400 border border-green-500/30 hover:border-green-500/60 px-2 py-0.5 rounded transition-colors"
+              >
+                ⟳ Generate
+              </button>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}

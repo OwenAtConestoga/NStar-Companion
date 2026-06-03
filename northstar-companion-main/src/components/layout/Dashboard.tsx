@@ -20,6 +20,8 @@ interface DashboardProps {
   onLock: () => void;
   onSwitchProfile: () => void;
   onChangePassword: () => void;
+  onExport: () => void;
+  onImport: () => void;
   lastSync: LastSync | null;
 }
 
@@ -38,6 +40,8 @@ export default function Dashboard({
   onLock,
   onSwitchProfile,
   onChangePassword,
+  onExport,
+  onImport,
   lastSync,
 }: DashboardProps) {
   return (
@@ -52,7 +56,18 @@ export default function Dashboard({
         onLock={onLock}
         onSwitchProfile={onSwitchProfile}
         onChangePassword={onChangePassword}
+        onExport={onExport}
+        onImport={onImport}
       />
+
+      {!isSupported && (
+        <div className="flex items-center gap-3 px-6 py-2 bg-yellow-500/5 border-b border-yellow-500/20 flex-shrink-0">
+          <span className="text-yellow-400 font-mono text-xs">⚠</span>
+          <p className="text-yellow-400/80 font-mono text-xs">
+            Device sync requires Chrome or Edge on desktop — vault features work normally.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
 

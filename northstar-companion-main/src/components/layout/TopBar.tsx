@@ -12,6 +12,8 @@ interface TopBarProps {
   onLock: () => void;
   onSwitchProfile: () => void;
   onChangePassword: () => void;
+  onExport: () => void;
+  onImport: () => void;
 }
 
 export default function TopBar({
@@ -24,6 +26,8 @@ export default function TopBar({
   onLock,
   onSwitchProfile,
   onChangePassword,
+  onExport,
+  onImport,
 }: TopBarProps) {
   return (
     <div className="relative flex items-center px-6 py-4 border-b border-zinc-800 flex-shrink-0 gap-4">
@@ -61,6 +65,22 @@ export default function TopBar({
             ⇄
           </button>
         </div>
+
+        <button
+          onClick={onExport}
+          className="text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors"
+          title="Download encrypted vault backup"
+        >
+          // export
+        </button>
+
+        <button
+          onClick={onImport}
+          className="text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors"
+          title="Restore vault from backup"
+        >
+          // import
+        </button>
 
         <button
           onClick={onChangePassword}
