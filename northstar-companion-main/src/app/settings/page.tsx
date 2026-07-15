@@ -151,7 +151,7 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-2">
             {[
               { label: "App",       value: "NorthStar Companion" },
-              { label: "Version",   value: "v1.0 · Phase 1" },
+              { label: "Version",   value: "v1.0 · Phase 2" },
               { label: "Stack",     value: "Next.js 16 · Tailwind v4" },
               { label: "Crypto",    value: "Web Crypto API (browser-native)" },
               { label: "Serial",    value: "Web Serial API (Chrome/Edge)" },

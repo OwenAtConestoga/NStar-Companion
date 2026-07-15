@@ -32,7 +32,7 @@ export default function PageNav({ subtitle }: PageNavProps) {
         </button>
         <Link
           href="/"
-          className="text-green-500 font-bold text-3xl font-mono hover:text-green-400 transition-colors leading-none"
+          className="text-green-500 font-bold text-4xl sm:text-5xl font-mono hover:text-green-400 transition-colors leading-none"
         >
           N*
         </Link>
