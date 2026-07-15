@@ -63,7 +63,7 @@ export default function CredentialCard({ id, serviceName, username, icon, create
           </button>
           <button
             onClick={() => setConfirmingDelete(false)}
-            className="text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 font-mono text-xs px-2 py-1 rounded transition-colors"
+            className="text-zinc-100 hover:text-green-400 border border-zinc-700 hover:border-zinc-500 font-mono text-xs px-2 py-1 rounded transition-colors"
           >
             CANCEL
           </button>
@@ -87,13 +87,13 @@ export default function CredentialCard({ id, serviceName, username, icon, create
           )}
           <button
             onClick={() => onEdit(id)}
-            className="text-zinc-500 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 font-mono text-xs px-2 py-1 rounded transition-colors"
+            className="text-zinc-100 hover:text-green-400 border border-zinc-700 hover:border-green-500/50 font-mono text-xs px-2 py-1 rounded transition-colors"
           >
             EDIT
           </button>
           <button
             onClick={() => setConfirmingDelete(true)}
-            className="text-zinc-500 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-mono text-xs px-2 py-1 rounded transition-colors"
+            className="text-zinc-100 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-mono text-xs px-2 py-1 rounded transition-colors"
           >
             DEL
           </button>

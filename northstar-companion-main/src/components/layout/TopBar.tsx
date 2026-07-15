@@ -77,9 +77,9 @@ export default function TopBar({
 
         {/* Secondary actions — visible on large screens */}
         <div className="hidden lg:flex items-center gap-3">
-          <button onClick={onExport}         className="text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors whitespace-nowrap" title="Download encrypted backup">// export</button>
-          <button onClick={onImport}         className="text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors whitespace-nowrap" title="Restore from backup">// import</button>
-          <button onClick={onChangePassword} className="text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors whitespace-nowrap" title="Change vault password">// pwd</button>
+          <button onClick={onExport}         className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap" title="Download encrypted backup">// export</button>
+          <button onClick={onImport}         className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap" title="Restore from backup">// import</button>
+          <button onClick={onChangePassword} className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap" title="Change vault password">// pwd</button>
         </div>
 
         {/* ⋯ overflow menu for medium screens */}
@@ -95,9 +95,9 @@ export default function TopBar({
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-36">
-                <button onClick={() => { onExport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// export backup</button>
-                <button onClick={() => { onImport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// import backup</button>
-                <button onClick={() => { onChangePassword(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// change password</button>
+                <button onClick={() => { onExport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-100 hover:bg-zinc-800 font-mono text-xs transition-colors">// export backup</button>
+                <button onClick={() => { onImport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-100 hover:bg-zinc-800 font-mono text-xs transition-colors">// import backup</button>
+                <button onClick={() => { onChangePassword(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-100 hover:bg-zinc-800 font-mono text-xs transition-colors">// change password</button>
               </div>
             </>
           )}
@@ -105,7 +105,7 @@ export default function TopBar({
 
         <button
           onClick={onLock}
-          className="text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors whitespace-nowrap flex-shrink-0"
+          className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap flex-shrink-0"
           title="Lock vault"
         >
           ⊠ LOCK

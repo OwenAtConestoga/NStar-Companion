@@ -39,7 +39,7 @@ export default function BottomActionBar({
         </button>
         <button
           onClick={onAddNew}
-          className="flex-shrink-0 border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 font-mono px-4 py-3 rounded transition-colors whitespace-nowrap"
+          className="flex-shrink-0 border border-zinc-700 text-zinc-100 hover:text-green-400 hover:border-green-500/50 font-mono px-4 py-3 rounded transition-colors whitespace-nowrap"
         >
           + Add New
         </button>
