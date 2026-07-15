@@ -42,7 +42,7 @@ export default function TopBar({
 
       {/* Left: logo + profile switcher */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        <Link href="/" className="text-green-500 font-bold text-3xl font-mono hover:text-green-400 transition-colors leading-none">
+        <Link href="/" className="text-green-500 font-bold text-4xl sm:text-5xl font-mono hover:text-green-400 transition-colors leading-none">
           N*
         </Link>
 
@@ -116,12 +116,12 @@ export default function TopBar({
           </div>
 
         ) : !isConnected ? (
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 flex-shrink-0">
-            <span className="w-2 h-2 bg-zinc-600 rounded-full flex-shrink-0" />
-            <span className="hidden sm:inline text-zinc-500 font-mono text-xs whitespace-nowrap">No Device</span>
+          <div className="flex items-center gap-3 bg-zinc-900 border border-cyan-500/40 rounded-lg px-4 py-2.5 flex-shrink-0">
+            <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full flex-shrink-0 animate-pulse" />
+            <span className="hidden sm:inline text-zinc-300 font-mono text-sm whitespace-nowrap">No Device Connected</span>
             <button
               onClick={onConnect}
-              className="text-green-500 hover:text-green-400 border border-green-500/40 hover:border-green-500 font-mono text-xs px-2 py-0.5 rounded transition-colors whitespace-nowrap"
+              className="text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 font-mono text-sm font-bold px-3 py-1 rounded transition-colors whitespace-nowrap"
             >
               CONNECT
             </button>

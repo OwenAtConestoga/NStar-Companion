@@ -117,6 +117,12 @@ function useLCDSimulator(credentials: Credential[]) {
     }
   }, [screen]);
 
+  // KEY3 — home (jumps to main menu from anywhere except mid-typing, mirrors firmware go_home())
+  const pressHome = useCallback(() => {
+    if (screen === "typing") return;
+    setScreen("home"); setCursor(0);
+  }, [screen]);
+
   const listCred = credentials[cursor];
 
   let line1 = "";
@@ -176,8 +182,9 @@ function useLCDSimulator(credentials: Credential[]) {
   const canBack   = screen !== "home" && !isTyping;
   const canSelect = !isTyping && screen !== "info"
     && !(screen === "accounts" && credentials.length === 0);
+  const canHome   = screen !== "home" && screen !== "typing";
 
-  return { line1, line2, screen, cursor, pressUp, pressDown, pressBack, pressSelect, canUp, canDown, canBack, canSelect, isTyping };
+  return { line1, line2, screen, cursor, pressUp, pressDown, pressBack, pressSelect, pressHome, canUp, canDown, canBack, canSelect, canHome, isTyping };
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -190,28 +197,30 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
 
   const {
     line1, line2, screen, cursor,
-    pressUp, pressDown, pressBack, pressSelect,
-    canUp, canDown, canBack, canSelect, isTyping,
+    pressUp, pressDown, pressBack, pressSelect, pressHome,
+    canUp, canDown, canBack, canSelect, canHome, isTyping,
   } = useLCDSimulator(credentials);
 
   // Buttons always work — simulator is available regardless of pairing state
+  // Mirrors the physical Waveshare HAT: joystick UP/DOWN + KEY1(OK)/KEY2(Back)/KEY3(Home)
   const buttons = [
-    { label: "↑",  action: pressUp,     title: "UP",     enabled: canUp    },
-    { label: "↓",  action: pressDown,   title: "DOWN",   enabled: canDown  },
-    { label: "K1", action: pressSelect, title: "ENTER",  enabled: canSelect },
-    { label: "K2", action: pressBack,   title: "BACK",   enabled: canBack  },
+    { label: "↑",  action: pressUp,     title: "JOYSTICK UP",   enabled: canUp     },
+    { label: "↓",  action: pressDown,   title: "JOYSTICK DOWN", enabled: canDown   },
+    { label: "K1", action: pressSelect, title: "KEY1 — OK",     enabled: canSelect },
+    { label: "K2", action: pressBack,   title: "KEY2 — BACK",   enabled: canBack   },
+    { label: "K3", action: pressHome,   title: "KEY3 — HOME",   enabled: canHome   },
   ];
 
   const hint: Record<MenuScreen, string> = {
     home:          "↑↓ cycle · K1 select",
-    accounts:      "↑↓ cycle · K1 select · K2 back",
-    detail:        "K1 send · K2 back",
+    accounts:      "↑↓ cycle · K1 select · K2 back · K3 home",
+    detail:        "K1 send · K2 back · K3 home",
     typing:        "typing credentials...",
     sent:          "sent — returning to detail",
-    removeConfirm: "↑↓ YES/NO · K1 confirm · K2 back",
-    delAllConfirm: "↑↓ YES/NO · K1 confirm · K2 back",
-    settings:      "↑↓ cycle · K1 select · K2 back",
-    info:          "K2 back",
+    removeConfirm: "↑↓ YES/NO · K1 confirm · K2 back · K3 home",
+    delAllConfirm: "↑↓ YES/NO · K1 confirm · K2 back · K3 home",
+    settings:      "↑↓ cycle · K1 select · K2 back · K3 home",
+    info:          "K2 back · K3 home",
   };
 
   return (
