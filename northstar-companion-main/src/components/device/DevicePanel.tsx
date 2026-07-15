@@ -35,13 +35,6 @@ function useLCDSimulator(credentials: Credential[]) {
   const [cursor,    setCursor]    = useState(0);
   const [countdown, setCountdown] = useState(3);
 
-  // If creds removed while browsing accounts, go home
-  useEffect(() => {
-    if (credentials.length === 0 && screen === "accounts") {
-      setCursor(0); setScreen("home");
-    }
-  }, [credentials.length, screen]);
-
   // Typing countdown → sent
   useEffect(() => {
     if (screen !== "typing") return;
@@ -135,8 +128,8 @@ function useLCDSimulator(credentials: Credential[]) {
       break;
     case "accounts":
       if (credentials.length === 0) {
-        line1 = lcdPad("  no accounts");
-        line2 = lcdPad("  sync to add");
+        line1 = lcdPad("// no accounts");
+        line2 = lcdPad("// sync to push");
       } else if (cursor < credentials.length) {
         line1 = lcdPad(`~${listCred.serviceName}`);
         line2 = lcdPad(`  ${listCred.username}`);
@@ -202,14 +195,24 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
   } = useLCDSimulator(credentials);
 
   // Buttons always work — simulator is available regardless of pairing state
-  // Mirrors the physical Waveshare HAT: joystick UP/DOWN + KEY1(OK)/KEY2(Back)/KEY3(Home)
-  const buttons = [
-    { label: "↑",  action: pressUp,     title: "JOYSTICK UP",   enabled: canUp     },
-    { label: "↓",  action: pressDown,   title: "JOYSTICK DOWN", enabled: canDown   },
-    { label: "K1", action: pressSelect, title: "KEY1 — OK",     enabled: canSelect },
-    { label: "K2", action: pressBack,   title: "KEY2 — BACK",   enabled: canBack   },
-    { label: "K3", action: pressHome,   title: "KEY3 — HOME",   enabled: canHome   },
+  // Mirrors the physical Waveshare HAT: joystick on the left, KEY1/2/3 stacked on the right (K1 top, K3 bottom)
+  const joyButtons = [
+    { label: "↑", action: pressUp,   title: "JOYSTICK UP",   enabled: canUp   },
+    { label: "↓", action: pressDown, title: "JOYSTICK DOWN", enabled: canDown },
   ];
+  const keyButtons = [
+    { label: "K1", action: pressSelect, title: "KEY1 — OK",   enabled: canSelect },
+    { label: "K2", action: pressBack,   title: "KEY2 — BACK", enabled: canBack   },
+    { label: "K3", action: pressHome,   title: "KEY3 — HOME", enabled: canHome   },
+  ];
+
+  function btnClass(enabled: boolean) {
+    return `w-8 h-8 border rounded-sm flex items-center justify-center font-mono text-xs select-none transition-all ${
+      enabled && !isTyping
+        ? "bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 border-zinc-500 hover:border-zinc-400 text-zinc-100 cursor-pointer"
+        : "bg-zinc-800 border-zinc-700 text-zinc-600 cursor-not-allowed"
+    }`;
+  }
 
   const hint: Record<MenuScreen, string> = {
     home:          "↑↓ cycle · K1 select",
@@ -240,35 +243,38 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
           <p className="text-zinc-700 font-mono text-xs">mirrors firmware</p>
         </div>
 
-        <div className="rounded-lg overflow-hidden border-2 border-zinc-600 shadow-inner">
-          {/* Bezel top */}
-          <div className="bg-zinc-800 px-3 py-1.5 flex items-center justify-between border-b border-zinc-700">
-            <span className="text-zinc-500 font-mono text-xs">240×240 LCD</span>
-            <span className={`w-2 h-2 rounded-full ${
-              isPaired ? "bg-green-500 animate-pulse" : isConnected ? "bg-yellow-500 animate-pulse" : "bg-zinc-600"
-            }`} />
+        {/* Waveshare 1.3" HAT layout: joystick left, screen centre, KEY1/2/3 stacked right */}
+        <div className="bg-zinc-800 border-2 border-zinc-600 rounded-lg p-2.5 flex items-center gap-2.5 shadow-inner">
+
+          {/* Joystick — left */}
+          <div className="flex flex-col items-center justify-center gap-2 flex-shrink-0">
+            <button onClick={joyButtons[0].action} title={joyButtons[0].title} disabled={!joyButtons[0].enabled || isTyping} className={btnClass(joyButtons[0].enabled)}>
+              {joyButtons[0].label}
+            </button>
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+            <button onClick={joyButtons[1].action} title={joyButtons[1].title} disabled={!joyButtons[1].enabled || isTyping} className={btnClass(joyButtons[1].enabled)}>
+              {joyButtons[1].label}
+            </button>
           </div>
 
-          {/* LCD screen */}
-          <div className="bg-[#1a2a1a] px-4 py-3 font-mono text-xs leading-relaxed">
-            <div className="text-[#4ade80] tracking-wider whitespace-pre">{line1}</div>
-            <div className="text-[#22c55e] tracking-wider whitespace-pre">{line2}</div>
+          {/* Screen — centre */}
+          <div className="flex-1 min-w-0 rounded overflow-hidden border border-zinc-700">
+            <div className="bg-zinc-900 px-2.5 py-1 flex items-center justify-between border-b border-zinc-700">
+              <span className="text-zinc-500 font-mono text-[10px]">240×240 LCD</span>
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                isPaired ? "bg-green-500 animate-pulse" : isConnected ? "bg-yellow-500 animate-pulse" : "bg-zinc-600"
+              }`} />
+            </div>
+            <div className="bg-[#1a2a1a] px-3 py-3 font-mono text-xs leading-relaxed">
+              <div className="text-[#4ade80] tracking-wider whitespace-pre">{line1}</div>
+              <div className="text-[#22c55e] tracking-wider whitespace-pre">{line2}</div>
+            </div>
           </div>
 
-          {/* Button row */}
-          <div className="bg-zinc-800 px-3 py-2.5 border-t border-zinc-700 flex items-center justify-center gap-3">
-            {buttons.map(({ label, action, title, enabled }) => (
-              <button
-                key={title}
-                onClick={action}
-                title={title}
-                disabled={!enabled || isTyping}
-                className={`min-w-[2rem] px-2 h-7 border rounded-sm flex items-center justify-center font-mono text-xs select-none transition-all ${
-                  enabled && !isTyping
-                    ? "bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 border-zinc-500 hover:border-zinc-400 text-zinc-100 cursor-pointer"
-                    : "bg-zinc-800 border-zinc-700 text-zinc-600 cursor-not-allowed"
-                }`}
-              >
+          {/* KEY1/2/3 — right, stacked, K1 top / K3 bottom */}
+          <div className="flex flex-col items-center justify-between gap-2 flex-shrink-0 h-full py-1">
+            {keyButtons.map(({ label, action, title, enabled }) => (
+              <button key={title} onClick={action} title={title} disabled={!enabled || isTyping} className={btnClass(enabled)}>
                 {label}
               </button>
             ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Profile } from "@/hooks/useProfiles";
 
 interface ProfileSelectProps {
@@ -25,7 +26,15 @@ export default function ProfileSelect({ profiles, onSelect, onCreate, onDelete }
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm p-8 flex flex-col gap-6">
+      <div className="w-full max-w-sm flex flex-col gap-3">
+        <Link
+          href="/"
+          className="self-start text-zinc-500 hover:text-green-400 font-mono text-sm transition-colors flex items-center gap-1.5"
+        >
+          ← Home
+        </Link>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full p-8 flex flex-col gap-6">
 
         <div>
           <p className="text-green-400 font-mono text-xs tracking-widest uppercase mb-1">
@@ -78,10 +87,10 @@ export default function ProfileSelect({ profiles, onSelect, onCreate, onDelete }
                 ) : (
                   <button
                     onClick={() => setConfirmDelete(p.id)}
-                    className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 font-mono text-xs transition-all"
+                    className="text-zinc-500 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-mono text-xs px-2 py-1 rounded transition-colors flex-shrink-0"
                     title="Delete profile"
                   >
-                    ✕
+                    DEL
                   </button>
                 )}
               </div>
@@ -135,6 +144,7 @@ export default function ProfileSelect({ profiles, onSelect, onCreate, onDelete }
         <p className="text-zinc-600 font-mono text-xs text-center">
           Each profile has its own encrypted vault
         </p>
+        </div>
       </div>
     </div>
   );
