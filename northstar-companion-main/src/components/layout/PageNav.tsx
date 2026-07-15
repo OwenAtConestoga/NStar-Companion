@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 const NAV_LINKS = [
   { href: "/vault",    label: "// Vault"    },
   { href: "/device",   label: "// Device"   },
+  { href: "/manage",   label: "// Accounts" },
   { href: "/settings", label: "// Settings" },
   { href: "/faq",      label: "// FAQ"      },
 ];
@@ -24,10 +25,10 @@ export default function PageNav({ subtitle }: PageNavProps) {
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.back()}
-          className="text-zinc-100 hover:text-green-400 font-mono text-lg transition-colors leading-none"
+          className="text-zinc-100 hover:text-green-400 border border-zinc-700 hover:border-zinc-500 font-mono text-sm font-bold px-3 py-1 rounded transition-colors"
           title="Back"
         >
-          ←
+          ← BACK
         </button>
         <Link
           href="/"

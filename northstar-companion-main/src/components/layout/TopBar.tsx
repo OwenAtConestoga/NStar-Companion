@@ -82,8 +82,9 @@ export default function TopBar({
       {/* Right: actions + device */}
       <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
 
-        {/* Settings + Lock — everything else (FAQ, export, import, password, delete vault) lives on /settings */}
+        {/* Manage (multi-profile / enterprise), Settings, Lock — everything else lives on /settings */}
         <div className="flex items-center gap-2">
+          <Link href="/manage" className={`hidden sm:inline ${ACTION_BTN}`} title="Manage all profiles on this device">◈ accounts</Link>
           <Link href="/settings" className={ACTION_BTN} title="Settings, backup, instructions">⚙ settings</Link>
           <button onClick={onLock} className={ACTION_BTN} title="Lock vault">⊠ lock</button>
         </div>

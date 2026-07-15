@@ -8,7 +8,6 @@ interface DevicePanelProps {
   credentials: Credential[];
   isConnected: boolean;
   isPaired: boolean;
-  onConnect: () => void;
   onSync: () => void;
   lastSync: LastSync | null;
 }
@@ -182,7 +181,7 @@ function useLCDSimulator(credentials: Credential[]) {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function DevicePanel({ credentials, isConnected, isPaired, onConnect, onSync, lastSync }: DevicePanelProps) {
+export default function DevicePanel({ credentials, isConnected, isPaired, onSync, lastSync }: DevicePanelProps) {
   const staged   = credentials.length;
   const [search, setSearch] = useState("");
   const fillPct  = Math.round((staged / MAX_SLOTS) * 100);
@@ -410,28 +409,6 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onConn
           </div>
         );
       })()}
-
-      {/* Connection status */}
-      <div className={`rounded-lg px-4 py-3 border font-mono text-xs flex items-center gap-3 ${
-        isPaired      ? "bg-green-500/10 border-green-500/30 text-green-400"
-        : isConnected ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
-        :               "bg-zinc-800 border-zinc-700 text-zinc-500"
-      }`}>
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-          isPaired ? "bg-green-500 animate-pulse" : isConnected ? "bg-yellow-500 animate-pulse" : "bg-zinc-600"
-        }`} />
-        <span>
-          {isPaired ? "Device Ready — sync enabled" : isConnected ? "Connected — awaiting pair" : "No device connected"}
-        </span>
-        {!isConnected && (
-          <button
-            onClick={onConnect}
-            className="ml-auto text-green-500 hover:text-green-400 border border-green-500/40 hover:border-green-500 px-2 py-0.5 rounded transition-colors"
-          >
-            CONNECT
-          </button>
-        )}
-      </div>
 
       {/* Last sync */}
       {(() => {

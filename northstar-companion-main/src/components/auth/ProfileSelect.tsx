@@ -29,9 +29,9 @@ export default function ProfileSelect({ profiles, onSelect, onCreate, onDelete }
       <div className="w-full max-w-sm flex flex-col gap-3">
         <Link
           href="/"
-          className="self-start text-zinc-500 hover:text-green-400 font-mono text-sm transition-colors flex items-center gap-1.5"
+          className="self-start text-zinc-100 hover:text-green-400 border border-zinc-700 hover:border-zinc-500 font-mono text-sm font-bold px-3 py-1 rounded transition-colors"
         >
-          ← Home
+          ← HOME
         </Link>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full p-8 flex flex-col gap-6">

@@ -57,6 +57,13 @@ export function useProfiles() {
     setActiveId(id);
   }, []);
 
+  // Clears a profile's vault + session but keeps the profile itself —
+  // next unlock starts fresh with a new master password.
+  const resetProfile = useCallback((id: string) => {
+    localStorage.removeItem(`nsa-vault-${id}`);
+    sessionStorage.removeItem(`nsa-session-${id}`);
+  }, []);
+
   const deleteProfile = useCallback((id: string) => {
     localStorage.removeItem(`nsa-vault-${id}`);
     sessionStorage.removeItem(`nsa-session-${id}`);
@@ -74,5 +81,5 @@ export function useProfiles() {
 
   const activeProfile = profiles.find((p) => p.id === activeId) ?? null;
 
-  return { profiles, activeProfile, loaded, createProfile, selectProfile, deleteProfile };
+  return { profiles, activeProfile, loaded, createProfile, selectProfile, resetProfile, deleteProfile };
 }

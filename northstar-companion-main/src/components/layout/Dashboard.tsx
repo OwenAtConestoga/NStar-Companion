@@ -79,7 +79,6 @@ export default function Dashboard({
             credentials={credentials}
             isConnected={isConnected}
             isPaired={isPaired}
-            onConnect={onConnect}
             onSync={onInitiateSync}
             lastSync={lastSync}
           />
