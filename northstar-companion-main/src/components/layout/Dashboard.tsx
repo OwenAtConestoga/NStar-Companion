@@ -19,9 +19,6 @@ interface DashboardProps {
   onDisconnect: () => void;
   onLock: () => void;
   onSwitchProfile: () => void;
-  onChangePassword: () => void;
-  onExport: () => void;
-  onImport: () => void;
   lastSync: LastSync | null;
 }
 
@@ -39,9 +36,6 @@ export default function Dashboard({
   onDisconnect,
   onLock,
   onSwitchProfile,
-  onChangePassword,
-  onExport,
-  onImport,
   lastSync,
 }: DashboardProps) {
   return (
@@ -55,9 +49,6 @@ export default function Dashboard({
         onDisconnect={onDisconnect}
         onLock={onLock}
         onSwitchProfile={onSwitchProfile}
-        onChangePassword={onChangePassword}
-        onExport={onExport}
-        onImport={onImport}
       />
 
       {!isSupported && (

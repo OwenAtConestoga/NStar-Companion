@@ -4,10 +4,8 @@ import { useState, useCallback } from "react";
 import Dashboard from "@/components/layout/Dashboard";
 import TransferModal from "@/components/device/TransferModal";
 import AddCredentialModal from "@/components/vault/AddCredentialModal";
-import ImportModal from "@/components/vault/ImportModal";
 import UnlockScreen from "@/components/auth/UnlockScreen";
 import ProfileSelect from "@/components/auth/ProfileSelect";
-import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import PasswordReadyModal from "@/components/device/PasswordReadyModal";
 import type { Credential } from "@/types/credential";
 import { useSerialDevice } from "@/hooks/useSerialDevice";
@@ -18,7 +16,6 @@ import { useEffect } from "react";
 export default function VaultPage() {
   const { profiles, activeProfile, loaded: profilesLoaded, createProfile, selectProfile, deleteProfile } = useProfiles();
   const [showProfileSelect, setShowProfileSelect] = useState(false);
-  const [showChangePwd, setShowChangePwd]         = useState(false);
 
   const {
     isSupported, isConnected, isPaired, syncState, lastSync,
@@ -30,13 +27,11 @@ export default function VaultPage() {
 
   const {
     status, credentials, unlockError,
-    createVault, unlock, saveCredentials, changePassword, lock,
-    exportVault, importVault,
+    createVault, unlock, saveCredentials, lock,
   } = useVaultStorage(profileId || "default");
 
   const [isTransferring, setIsTransferring]       = useState(false);
   const [isAddingNew, setIsAddingNew]             = useState(false);
-  const [isImporting, setIsImporting]             = useState(false);
   const [editingCredential, setEditingCredential] = useState<Credential | null>(null);
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
 
@@ -77,10 +72,6 @@ export default function VaultPage() {
     setIsTransferring(false);
     resetSync();
   }, [resetSync]);
-
-  const handleExport = useCallback(() => {
-    exportVault(activeProfile?.name ?? "vault");
-  }, [exportVault, activeProfile]);
 
   const handleLock = useCallback(() => {
     lock();
@@ -143,9 +134,6 @@ export default function VaultPage() {
         onDisconnect={disconnect}
         onLock={handleLock}
         onSwitchProfile={handleSwitchProfile}
-        onChangePassword={() => setShowChangePwd(true)}
-        onExport={handleExport}
-        onImport={() => setIsImporting(true)}
         lastSync={lastSync}
       />
 
@@ -174,20 +162,6 @@ export default function VaultPage() {
         <PasswordReadyModal
           credential={selectedCredential}
           onDismiss={() => setSelectedCredential(null)}
-        />
-      )}
-
-      {showChangePwd && (
-        <ChangePasswordModal
-          onSave={changePassword}
-          onClose={() => setShowChangePwd(false)}
-        />
-      )}
-
-      {isImporting && (
-        <ImportModal
-          onImport={importVault}
-          onClose={() => setIsImporting(false)}
         />
       )}
     </>

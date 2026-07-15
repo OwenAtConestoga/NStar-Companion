@@ -8,13 +8,10 @@ interface TopBarProps {
   isPaired: boolean;
   isSupported: boolean;
   profileName: string;
-  onConnect: () => void;
+  onConnect: () => void | Promise<void>;
   onDisconnect: () => void;
   onLock: () => void;
   onSwitchProfile: () => void;
-  onChangePassword: () => void;
-  onExport: () => void;
-  onImport: () => void;
 }
 
 // Low-key uniform button — same bordered-pill shape as CONNECT, muted colours so
@@ -31,11 +28,20 @@ export default function TopBar({
   onDisconnect,
   onLock,
   onSwitchProfile,
-  onChangePassword,
-  onExport,
-  onImport,
 }: TopBarProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [awaitingPick, setAwaitingPick] = useState(false);
+
+  // Give the "select the device" hint a chance to paint before the
+  // (blocking, native) Web Serial port picker opens.
+  async function handleConnectClick() {
+    setAwaitingPick(true);
+    await new Promise(requestAnimationFrame);
+    try {
+      await onConnect();
+    } finally {
+      setAwaitingPick(false);
+    }
+  }
 
   return (
     <div className="relative flex items-center px-4 sm:px-6 py-3 border-b border-zinc-800 flex-shrink-0 gap-3 min-w-0">
@@ -67,45 +73,19 @@ export default function TopBar({
 
       {/* Center: title — flex-1 so it never overlaps neighbours */}
       <div className="flex-1 min-w-0 hidden md:flex justify-center pointer-events-none">
-        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded px-4 py-1.5 pointer-events-auto">
-          <p className="text-zinc-100 font-mono text-sm tracking-widest uppercase whitespace-nowrap">NorthStar Companion</p>
-          <p className="text-green-500/70 font-mono text-xs tracking-wider mt-0.5 whitespace-nowrap">// local vault</p>
+        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded px-6 py-2.5 pointer-events-auto">
+          <p className="text-zinc-100 font-mono text-lg sm:text-xl font-bold tracking-widest uppercase whitespace-nowrap">NorthStar Companion</p>
+          <p className="text-green-500/70 font-mono text-sm tracking-wider mt-0.5 whitespace-nowrap">// local vault</p>
         </div>
       </div>
 
       {/* Right: actions + device */}
       <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
 
-        {/* Actions — visible on large screens, all uniform low-key buttons */}
-        <div className="hidden lg:flex items-center gap-2">
-          <Link href="/faq" className={ACTION_BTN}>// FAQ</Link>
-          <button onClick={onExport}         className={ACTION_BTN} title="Download encrypted backup">// export</button>
-          <button onClick={onImport}         className={ACTION_BTN} title="Restore from backup">// import</button>
-          <button onClick={onChangePassword} className={ACTION_BTN} title="Change vault password">// pwd</button>
-          <button onClick={onLock}           className={ACTION_BTN} title="Lock vault">⊠ lock</button>
-        </div>
-
-        {/* ⋯ overflow menu for medium/small screens */}
-        <div className="relative lg:hidden">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="text-zinc-500 hover:text-zinc-300 font-mono text-sm px-1.5 py-0.5 rounded hover:bg-zinc-800 transition-colors"
-            title="More actions"
-          >
-            ⋯
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-36">
-                <Link href="/faq" onClick={() => setMenuOpen(false)} className="block w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// FAQ</Link>
-                <button onClick={() => { onExport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// export backup</button>
-                <button onClick={() => { onImport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// import backup</button>
-                <button onClick={() => { onChangePassword(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// change password</button>
-                <button onClick={() => { onLock();           setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">⊠ lock vault</button>
-              </div>
-            </>
-          )}
+        {/* Settings + Lock — everything else (FAQ, export, import, password, delete vault) lives on /settings */}
+        <div className="flex items-center gap-2">
+          <Link href="/settings" className={ACTION_BTN} title="Settings, backup, instructions">⚙ settings</Link>
+          <button onClick={onLock} className={ACTION_BTN} title="Lock vault">⊠ lock</button>
         </div>
 
         {/* Device status */}
@@ -116,14 +96,17 @@ export default function TopBar({
           </div>
 
         ) : !isConnected ? (
-          <div className="flex items-center gap-3 bg-zinc-900 border border-cyan-500/40 rounded-lg px-4 py-2.5 flex-shrink-0">
-            <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full flex-shrink-0 animate-pulse" />
-            <span className="hidden sm:inline text-zinc-300 font-mono text-sm whitespace-nowrap">No Device Connected</span>
+          <div className="flex items-center gap-3 bg-zinc-900 border border-yellow-500/40 rounded-lg px-4 py-2.5 flex-shrink-0">
+            <span className="w-2.5 h-2.5 bg-yellow-400 rounded-full flex-shrink-0 animate-pulse" />
+            <span className="hidden sm:inline text-zinc-300 font-mono text-sm whitespace-nowrap">
+              {awaitingPick ? "Select the NorthStar device in the picker…" : "No Device Connected"}
+            </span>
             <button
-              onClick={onConnect}
-              className="text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 font-mono text-sm font-bold px-3 py-1 rounded transition-colors whitespace-nowrap"
+              onClick={handleConnectClick}
+              disabled={awaitingPick}
+              className="text-yellow-400 hover:text-yellow-300 border border-yellow-500/50 hover:border-yellow-400 font-mono text-sm font-bold px-3 py-1 rounded transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-wait"
             >
-              CONNECT
+              {awaitingPick ? "…" : "CONNECT"}
             </button>
           </div>
 
