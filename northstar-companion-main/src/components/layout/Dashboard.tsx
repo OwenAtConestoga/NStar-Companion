@@ -83,17 +83,17 @@ export default function Dashboard({
           <button
             onClick={() => setPanelCollapsed(false)}
             title="Show device panel"
-            className="hidden lg:flex flex-col items-center justify-center gap-3 w-9 border-l border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-green-400 transition-colors flex-shrink-0"
+            className="hidden lg:flex flex-col items-center justify-center gap-4 w-14 border-l-2 border-green-500/40 hover:border-green-400 bg-zinc-900 hover:bg-zinc-800 text-green-500 hover:text-green-400 transition-colors flex-shrink-0"
           >
-            <span className="text-sm">‹</span>
-            <span className="[writing-mode:vertical-rl] font-mono text-xs tracking-widest">// DEVICE</span>
+            <span className="text-2xl leading-none font-bold">‹</span>
+            <span className="[writing-mode:vertical-rl] font-mono text-sm tracking-widest font-bold">// DEVICE</span>
           </button>
         ) : (
           <div className="hidden lg:flex lg:flex-col w-1/4 min-w-72 max-w-96 border-l border-zinc-800 flex-shrink-0 overflow-hidden relative">
             <button
               onClick={() => setPanelCollapsed(true)}
               title="Collapse device panel"
-              className="absolute top-4 right-4 z-10 text-zinc-400 hover:text-green-400 border border-zinc-700 hover:border-zinc-500 bg-zinc-900 rounded px-1.5 py-0.5 text-xs transition-colors"
+              className="absolute top-4 right-4 z-10 text-green-500 hover:text-green-400 border-2 border-green-500/50 hover:border-green-400 bg-zinc-900 rounded-lg px-3 py-2 text-lg font-bold leading-none transition-colors"
             >
               ›
             </button>
