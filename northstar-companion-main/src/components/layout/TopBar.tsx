@@ -17,6 +17,11 @@ interface TopBarProps {
   onImport: () => void;
 }
 
+// Low-key uniform button — same bordered-pill shape as CONNECT, muted colours so
+// it doesn't compete with the actual device-status CTAs.
+const ACTION_BTN =
+  "border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 font-mono text-xs px-2.5 py-1 rounded transition-colors whitespace-nowrap";
+
 export default function TopBar({
   isConnected,
   isPaired,
@@ -35,29 +40,13 @@ export default function TopBar({
   return (
     <div className="relative flex items-center px-4 sm:px-6 py-3 border-b border-zinc-800 flex-shrink-0 gap-3 min-w-0">
 
-      {/* Left: logo + FAQ */}
+      {/* Left: logo + profile switcher */}
       <div className="flex items-center gap-3 flex-shrink-0">
         <Link href="/" className="text-green-500 font-bold text-3xl font-mono hover:text-green-400 transition-colors leading-none">
           N*
         </Link>
-        <Link href="/faq" className="hidden sm:inline text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors">
-          // FAQ
-        </Link>
-      </div>
 
-      {/* Center: title — flex-1 so it never overlaps neighbours */}
-      <div className="flex-1 min-w-0 hidden md:flex justify-center pointer-events-none">
-        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded px-4 py-1.5 pointer-events-auto">
-          <p className="text-zinc-100 font-mono text-sm tracking-widest uppercase whitespace-nowrap">NorthStar Companion</p>
-          <p className="text-green-500/70 font-mono text-xs tracking-wider mt-0.5 whitespace-nowrap">// local vault</p>
-        </div>
-      </div>
-
-      {/* Right: profile + actions + device */}
-      <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
-
-        {/* Profile chip */}
-        <div className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5">
           <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
             <span className="text-green-400 font-mono text-[9px] font-bold">
               {profileName.slice(0, 2).toUpperCase()}
@@ -74,15 +63,29 @@ export default function TopBar({
             ⇄
           </button>
         </div>
+      </div>
 
-        {/* Secondary actions — visible on large screens */}
-        <div className="hidden lg:flex items-center gap-3">
-          <button onClick={onExport}         className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap" title="Download encrypted backup">// export</button>
-          <button onClick={onImport}         className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap" title="Restore from backup">// import</button>
-          <button onClick={onChangePassword} className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap" title="Change vault password">// pwd</button>
+      {/* Center: title — flex-1 so it never overlaps neighbours */}
+      <div className="flex-1 min-w-0 hidden md:flex justify-center pointer-events-none">
+        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded px-4 py-1.5 pointer-events-auto">
+          <p className="text-zinc-100 font-mono text-sm tracking-widest uppercase whitespace-nowrap">NorthStar Companion</p>
+          <p className="text-green-500/70 font-mono text-xs tracking-wider mt-0.5 whitespace-nowrap">// local vault</p>
+        </div>
+      </div>
+
+      {/* Right: actions + device */}
+      <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
+
+        {/* Actions — visible on large screens, all uniform low-key buttons */}
+        <div className="hidden lg:flex items-center gap-2">
+          <Link href="/faq" className={ACTION_BTN}>// FAQ</Link>
+          <button onClick={onExport}         className={ACTION_BTN} title="Download encrypted backup">// export</button>
+          <button onClick={onImport}         className={ACTION_BTN} title="Restore from backup">// import</button>
+          <button onClick={onChangePassword} className={ACTION_BTN} title="Change vault password">// pwd</button>
+          <button onClick={onLock}           className={ACTION_BTN} title="Lock vault">⊠ lock</button>
         </div>
 
-        {/* ⋯ overflow menu for medium screens */}
+        {/* ⋯ overflow menu for medium/small screens */}
         <div className="relative lg:hidden">
           <button
             onClick={() => setMenuOpen((v) => !v)}
@@ -95,21 +98,15 @@ export default function TopBar({
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-36">
-                <button onClick={() => { onExport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-100 hover:bg-zinc-800 font-mono text-xs transition-colors">// export backup</button>
-                <button onClick={() => { onImport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-100 hover:bg-zinc-800 font-mono text-xs transition-colors">// import backup</button>
-                <button onClick={() => { onChangePassword(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-100 hover:bg-zinc-800 font-mono text-xs transition-colors">// change password</button>
+                <Link href="/faq" onClick={() => setMenuOpen(false)} className="block w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// FAQ</Link>
+                <button onClick={() => { onExport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// export backup</button>
+                <button onClick={() => { onImport();         setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// import backup</button>
+                <button onClick={() => { onChangePassword(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">// change password</button>
+                <button onClick={() => { onLock();           setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-zinc-300 hover:bg-zinc-800 font-mono text-xs transition-colors">⊠ lock vault</button>
               </div>
             </>
           )}
         </div>
-
-        <button
-          onClick={onLock}
-          className="text-zinc-100 hover:text-green-400 font-mono text-xs transition-colors whitespace-nowrap flex-shrink-0"
-          title="Lock vault"
-        >
-          ⊠ LOCK
-        </button>
 
         {/* Device status */}
         {!isSupported ? (

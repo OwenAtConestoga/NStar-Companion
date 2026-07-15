@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useVaultStorage } from "@/hooks/useVaultStorage";
+import { useProfiles } from "@/hooks/useProfiles";
 import PageNav from "@/components/layout/PageNav";
 
 export default function SettingsPage() {
-  const { status, credentials, wipeVault } = useVaultStorage();
+  const { activeProfile } = useProfiles();
+  const profileId = activeProfile?.id ?? "";
+  const { status, credentials, wipeVault } = useVaultStorage(profileId || "default");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [wiped, setWiped] = useState(false);
 
@@ -58,9 +61,9 @@ export default function SettingsPage() {
               { label: "Master key",   value: "Never stored — memory only" },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-baseline justify-between gap-2">
-                <span className="text-zinc-600 text-xs flex-shrink-0">{label}</span>
+                <span className="text-zinc-400 text-sm flex-shrink-0">{label}</span>
                 <span className="border-b border-dashed border-zinc-800 flex-1" />
-                <span className="text-zinc-300 text-xs text-right">{value}</span>
+                <span className="text-zinc-100 text-sm text-right">{value}</span>
               </div>
             ))}
           </div>
@@ -82,16 +85,16 @@ export default function SettingsPage() {
             {[
               { label: "App",       value: "NorthStar Companion" },
               { label: "Version",   value: "v1.0 · Phase 1" },
-              { label: "Stack",     value: "Next.js 15 · Tailwind v4" },
+              { label: "Stack",     value: "Next.js 16 · Tailwind v4" },
               { label: "Crypto",    value: "Web Crypto API (browser-native)" },
               { label: "Serial",    value: "Web Serial API (Chrome/Edge)" },
               { label: "Backend",   value: "None" },
               { label: "Database",  value: "None" },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-baseline justify-between gap-2">
-                <span className="text-zinc-600 text-xs flex-shrink-0">{label}</span>
+                <span className="text-zinc-400 text-sm flex-shrink-0">{label}</span>
                 <span className="border-b border-dashed border-zinc-800 flex-1" />
-                <span className="text-zinc-300 text-xs text-right">{value}</span>
+                <span className="text-zinc-100 text-sm text-right">{value}</span>
               </div>
             ))}
           </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const NAV_LINKS = [
   { href: "/vault",    label: "// Vault"    },
@@ -12,11 +15,20 @@ interface PageNavProps {
 }
 
 export default function PageNav({ subtitle }: PageNavProps) {
+  const router = useRouter();
+
   return (
     <div className="relative flex items-center px-6 py-5 border-b border-zinc-800 flex-shrink-0">
 
-      {/* Left: N* logo + nav links */}
+      {/* Left: back + N* logo + nav links */}
       <div className="flex items-center gap-4">
+        <button
+          onClick={() => router.back()}
+          className="text-zinc-100 hover:text-green-400 font-mono text-lg transition-colors leading-none"
+          title="Back"
+        >
+          ←
+        </button>
         <Link
           href="/"
           className="text-green-500 font-bold text-3xl font-mono hover:text-green-400 transition-colors leading-none"
