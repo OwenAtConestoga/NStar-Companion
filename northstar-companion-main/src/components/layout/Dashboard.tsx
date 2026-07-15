@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Credential } from "@/types/credential";
 import type { LastSync } from "@/hooks/useSerialDevice";
 import TopBar from "@/components/layout/TopBar";
@@ -38,6 +41,8 @@ export default function Dashboard({
   onSwitchProfile,
   lastSync,
 }: DashboardProps) {
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+
   return (
     <div className="flex flex-col h-screen bg-zinc-950">
       <TopBar
@@ -73,16 +78,34 @@ export default function Dashboard({
           />
         </div>
 
-        {/* Right: device panel */}
-        <div className="hidden lg:flex lg:flex-col w-1/4 min-w-64 max-w-80 border-l border-zinc-800 flex-shrink-0 overflow-hidden">
-          <DevicePanel
-            credentials={credentials}
-            isConnected={isConnected}
-            isPaired={isPaired}
-            onSync={onInitiateSync}
-            lastSync={lastSync}
-          />
-        </div>
+        {/* Right: device panel — collapsible */}
+        {panelCollapsed ? (
+          <button
+            onClick={() => setPanelCollapsed(false)}
+            title="Show device panel"
+            className="hidden lg:flex flex-col items-center justify-center gap-3 w-9 border-l border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-green-400 transition-colors flex-shrink-0"
+          >
+            <span className="text-sm">‹</span>
+            <span className="[writing-mode:vertical-rl] font-mono text-xs tracking-widest">// DEVICE</span>
+          </button>
+        ) : (
+          <div className="hidden lg:flex lg:flex-col w-1/4 min-w-72 max-w-96 border-l border-zinc-800 flex-shrink-0 overflow-hidden relative">
+            <button
+              onClick={() => setPanelCollapsed(true)}
+              title="Collapse device panel"
+              className="absolute top-4 right-4 z-10 text-zinc-400 hover:text-green-400 border border-zinc-700 hover:border-zinc-500 bg-zinc-900 rounded px-1.5 py-0.5 text-xs transition-colors"
+            >
+              ›
+            </button>
+            <DevicePanel
+              credentials={credentials}
+              isConnected={isConnected}
+              isPaired={isPaired}
+              onSync={onInitiateSync}
+              lastSync={lastSync}
+            />
+          </div>
+        )}
 
       </div>
     </div>

@@ -232,14 +232,14 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
       <div>
         <p className="text-green-400 font-mono text-xs tracking-widest uppercase mb-0.5">// Device</p>
         <h2 className="text-zinc-100 font-mono text-lg font-bold">NorthStar Auth</h2>
-        <p className="text-zinc-500 font-mono text-xs">Pi Zero 2 W · Waveshare 1.3" LCD</p>
+        <p className="text-zinc-300 font-mono text-xs">Pi Zero 2 W · Waveshare 1.3" LCD</p>
       </div>
 
       {/* LCD Simulator */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-zinc-500 font-mono text-xs">// LCD Simulator</p>
-          <p className="text-zinc-700 font-mono text-xs">mirrors firmware</p>
+          <p className="text-zinc-400 font-mono text-xs">// LCD Simulator</p>
+          <p className="text-zinc-500 font-mono text-xs">mirrors firmware</p>
         </div>
 
         {/* Waveshare 1.3" HAT layout: joystick left, screen centre, KEY1/2/3 stacked right */}
@@ -280,7 +280,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
           </div>
         </div>
 
-        <p className="text-zinc-600 font-mono text-xs mt-1.5 text-center">{hint[screen]}</p>
+        <p className="text-zinc-400 font-mono text-xs mt-1.5 text-center">{hint[screen]}</p>
       </div>
 
       {/* Context panel */}
@@ -290,7 +290,10 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
 
         if (isSettingsCtx && screen === "info") return (
           <div>
-            <p className="text-zinc-500 font-mono text-xs mb-3">// Device Info</p>
+            <p className="text-zinc-500 font-mono text-xs mb-2">// Device Info</p>
+            <p className="text-zinc-400 font-mono text-xs leading-relaxed mb-3">
+              Read-only hardware summary for this device — board, display, inputs, and storage.
+            </p>
             <div className="flex flex-col gap-1.5">
               {[
                 { label: "Board",   value: "Pi Zero 2 W" },
@@ -300,9 +303,9 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
                 { label: "Storage", value: "microSD · 20 slots" },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-baseline justify-between gap-2">
-                  <span className="text-zinc-600 font-mono text-xs">{label}</span>
+                  <span className="text-zinc-400 font-mono text-xs">{label}</span>
                   <span className="border-b border-dashed border-zinc-800 flex-1" />
-                  <span className="text-zinc-300 font-mono text-xs">{value}</span>
+                  <span className="text-zinc-100 font-mono text-xs">{value}</span>
                 </div>
               ))}
             </div>
@@ -311,17 +314,20 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
 
         if (isSettingsCtx) return (
           <div>
-            <p className="text-zinc-500 font-mono text-xs mb-3">// Settings</p>
+            <p className="text-zinc-500 font-mono text-xs mb-2">// Settings</p>
+            <p className="text-zinc-400 font-mono text-xs leading-relaxed mb-3">
+              Shows how many accounts are staged for sync and when this device was last updated. Select to view read-only device info.
+            </p>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-zinc-600 font-mono text-xs">Staged</span>
+                <span className="text-zinc-400 font-mono text-xs">Staged</span>
                 <span className="border-b border-dashed border-zinc-800 flex-1" />
-                <span className="text-zinc-300 font-mono text-xs">{staged}/{MAX_SLOTS}</span>
+                <span className="text-zinc-100 font-mono text-xs">{staged}/{MAX_SLOTS}</span>
               </div>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-zinc-600 font-mono text-xs">Last sync</span>
+                <span className="text-zinc-400 font-mono text-xs">Last sync</span>
                 <span className="border-b border-dashed border-zinc-800 flex-1" />
-                <span className="text-zinc-300 font-mono text-xs">
+                <span className="text-zinc-100 font-mono text-xs">
                   {lastSync ? new Date(lastSync.at).toLocaleDateString("en-CA") : "never"}
                 </span>
               </div>
@@ -344,8 +350,12 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
         );
         return (
           <div>
+            <p className="text-zinc-500 font-mono text-xs mb-1">// Accounts</p>
+            <p className="text-zinc-400 font-mono text-xs leading-relaxed mb-2">
+              Browse accounts staged for this device. Select one, then press K1 to type its password via USB.
+            </p>
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-zinc-500 font-mono text-xs flex-shrink-0">// Staged</p>
+              <p className="text-zinc-400 font-mono text-xs flex-shrink-0">// Staged</p>
               <input
                 type="text"
                 value={search}
@@ -353,13 +363,13 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
                 placeholder="search..."
                 className="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 focus:border-zinc-500 rounded px-2 py-0.5 text-zinc-300 font-mono text-xs outline-none placeholder:text-zinc-600 transition-colors"
               />
-              <p className="text-zinc-600 font-mono text-xs flex-shrink-0">{staged}/{MAX_SLOTS}</p>
+              <p className="text-zinc-400 font-mono text-xs flex-shrink-0">{staged}/{MAX_SLOTS}</p>
             </div>
 
             {staged === 0 ? (
-              <p className="text-zinc-700 font-mono text-xs py-2">no accounts staged yet</p>
+              <p className="text-zinc-500 font-mono text-xs py-2">no accounts staged yet</p>
             ) : filtered.length === 0 ? (
-              <p className="text-zinc-700 font-mono text-xs py-2">no matches</p>
+              <p className="text-zinc-500 font-mono text-xs py-2">no matches</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {filtered.map((cred) => {
@@ -380,7 +390,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
                       <span className="w-4 text-center flex-shrink-0 mt-0.5">{cred.icon}</span>
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="truncate">{cred.serviceName}</span>
-                        <span className={`truncate text-xs ml-2 ${isCursorActive ? "text-green-600" : "text-zinc-600"}`}>
+                        <span className={`truncate text-xs ml-2 ${isCursorActive ? "text-green-600" : "text-zinc-400"}`}>
                           {cred.username}
                         </span>
                       </div>
@@ -398,10 +408,10 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
 
             {lastSync !== null && staged > 0 && (
               <div className="flex items-center gap-3 mt-2">
-                <span className="flex items-center gap-1 text-zinc-600 font-mono text-xs">
+                <span className="flex items-center gap-1 text-zinc-400 font-mono text-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> synced
                 </span>
-                <span className="flex items-center gap-1 text-zinc-600 font-mono text-xs">
+                <span className="flex items-center gap-1 text-zinc-400 font-mono text-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" /> not synced
                 </span>
               </div>
@@ -422,7 +432,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
             needsSync ? "bg-yellow-500/5 border-yellow-500/20" : "bg-zinc-900 border-zinc-800"
           }`}>
             <div className="flex items-center justify-between">
-              <span className="text-zinc-500">// Last Sync</span>
+              <span className="text-zinc-400">// Last Sync</span>
               {isPaired && (
                 <button onClick={onSync} className="text-green-500 hover:text-green-400 border border-green-500/40 hover:border-green-500 px-2 py-0.5 rounded transition-colors text-xs">
                   SYNC NOW
@@ -430,11 +440,11 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
               )}
             </div>
             {neverSynced ? (
-              <p className="text-zinc-600">Never synced — connect and sync to push credentials to device.</p>
+              <p className="text-zinc-400">Never synced — connect and sync to push credentials to device.</p>
             ) : (
               <div className="flex flex-col gap-1">
-                <p className="text-zinc-400">{syncDate}</p>
-                <p className="text-zinc-600">{lastSync!.count} account{lastSync!.count !== 1 ? "s" : ""} pushed</p>
+                <p className="text-zinc-200">{syncDate}</p>
+                <p className="text-zinc-400">{lastSync!.count} account{lastSync!.count !== 1 ? "s" : ""} pushed</p>
               </div>
             )}
             {needsSync && <p className="text-yellow-400 text-xs">⚠ Credentials changed — device may be out of date.</p>}
@@ -450,9 +460,9 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
         </div>
         <div className="bg-zinc-800 rounded px-2 py-1 font-mono text-xs text-green-500 tracking-widest">
           {"█".repeat(fillBars)}{"░".repeat(12 - fillBars)}
-          <span className="text-zinc-500 ml-2">{fillPct}%</span>
+          <span className="text-zinc-300 ml-2">{fillPct}%</span>
         </div>
-        <p className="text-zinc-600 font-mono text-xs mt-1">
+        <p className="text-zinc-400 font-mono text-xs mt-1">
           {MAX_SLOTS - staged} slot{MAX_SLOTS - staged !== 1 ? "s" : ""} remaining
         </p>
       </div>
@@ -472,9 +482,9 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
             { label: "Vault",   value: "AES-256-GCM PBKDF2" },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-baseline justify-between gap-2">
-              <span className="text-zinc-600 font-mono text-xs flex-shrink-0">{label}</span>
+              <span className="text-zinc-400 font-mono text-xs flex-shrink-0">{label}</span>
               <span className="border-b border-dashed border-zinc-800 flex-1" />
-              <span className="text-zinc-300 font-mono text-xs text-right">{value}</span>
+              <span className="text-zinc-100 font-mono text-xs text-right">{value}</span>
             </div>
           ))}
         </div>
@@ -483,7 +493,7 @@ export default function DevicePanel({ credentials, isConnected, isPaired, onSync
       {/* Standalone guide */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
         <p className="text-green-400 font-mono text-xs tracking-widest mb-2">// Standalone Use</p>
-        <ol className="text-zinc-500 font-mono text-xs space-y-1 list-none">
+        <ol className="text-zinc-300 font-mono text-xs space-y-1 list-none">
           <li>1. Add credentials + sync once</li>
           <li>2. Unplug — carry anywhere</li>
           <li>3. Plug into any computer</li>

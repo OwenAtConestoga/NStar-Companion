@@ -35,24 +35,26 @@ export default function CredentialList({ credentials, onEdit, onDelete, lastSync
           {filtered.length}{search ? `/${credentials.length}` : ""} credential{credentials.length !== 1 ? "s" : ""}
         </p>
         {lastSyncAt && (
-          <p className="text-zinc-600 font-mono text-xs flex-shrink-0 border-l border-zinc-700 pl-3">
-            last synced <span className="text-zinc-400">{new Date(lastSyncAt).toLocaleDateString("en-CA")}</span>
+          <p className="text-zinc-400 font-mono text-xs flex-shrink-0 border-l border-zinc-700 pl-3">
+            last synced <span className="text-zinc-200">{new Date(lastSyncAt).toLocaleDateString("en-CA")}</span>
           </p>
         )}
       </div>
 
       {credentials.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <span className="text-zinc-600 text-3xl">◈</span>
-          <p className="text-zinc-600 font-mono text-sm">// No credentials staged.</p>
-          <p className="text-zinc-700 font-mono text-xs">Use &quot;+ Add New&quot; to stage your first credential.</p>
+        <div className="flex flex-col items-center justify-center py-16 gap-2">
+          <span className="text-zinc-400 text-3xl">◈</span>
+          <p className="text-zinc-300 font-mono text-sm">// No credentials staged.</p>
+          <p className="text-zinc-500 font-mono text-xs">1. Click <span className="text-zinc-300">+ Add New</span> below to stage a credential</p>
+          <p className="text-zinc-500 font-mono text-xs">2. Connect your NorthStar device via USB</p>
+          <p className="text-zinc-500 font-mono text-xs">3. Click <span className="text-zinc-300">SYNC TO DEVICE</span> to push it over</p>
         </div>
       )}
 
       {credentials.length > 0 && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <span className="text-zinc-600 text-3xl">◈</span>
-          <p className="text-zinc-600 font-mono text-sm">// No matches for &quot;{search}&quot;</p>
+          <span className="text-zinc-400 text-3xl">◈</span>
+          <p className="text-zinc-300 font-mono text-sm">// No matches for &quot;{search}&quot;</p>
         </div>
       )}
 

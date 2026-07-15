@@ -29,8 +29,8 @@ export default function BottomActionBar({
             ${canSync
               ? "bg-green-500 hover:bg-green-400 text-black"
               : waiting
-              ? "bg-zinc-800 text-yellow-600 border border-yellow-600/30 cursor-not-allowed"
-              : "bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed"
+              ? "bg-zinc-800 text-yellow-500 border border-yellow-600/30 cursor-not-allowed"
+              : "bg-zinc-800 text-zinc-400 border border-zinc-700 cursor-not-allowed"
             }`}
         >
           {canSync   ? "SYNC TO DEVICE >"
@@ -39,13 +39,13 @@ export default function BottomActionBar({
         </button>
         <button
           onClick={onAddNew}
-          className="flex-shrink-0 border border-zinc-700 text-zinc-100 hover:text-green-400 hover:border-green-500/50 font-mono px-4 py-3 rounded transition-colors whitespace-nowrap"
+          className="w-1/4 flex-shrink-0 border-2 border-green-500/60 hover:border-green-400 text-zinc-100 hover:text-green-400 font-mono px-4 py-3 rounded transition-colors whitespace-nowrap truncate"
         >
           + Add New
         </button>
       </div>
       {!canSync && (
-        <p className="text-zinc-600 font-mono text-xs text-center truncate">
+        <p className="text-zinc-400 font-mono text-xs text-center truncate">
           {waiting
             ? "// Device connected — waiting for PAIR key"
             : "// Connect a NorthStar device via USB to sync"}
