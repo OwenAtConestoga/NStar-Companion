@@ -87,7 +87,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
           <h2 className="text-zinc-100 font-mono text-lg font-bold">
             {isEditing ? "Edit Account" : "Add to Local Vault"}
           </h2>
-          <p className="text-zinc-500 font-mono text-xs mt-1">
+          <p className="text-zinc-300 font-mono text-xs mt-1">
             Username and password are both sent to the device on sync.
           </p>
         </div>
@@ -96,7 +96,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
 
           {/* Icon picker */}
           <div>
-            <label className="text-zinc-400 font-mono text-xs block mb-2">// Select Icon</label>
+            <label className="text-zinc-300 font-mono text-xs block mb-2">// Select Icon</label>
             <div className="grid grid-cols-6 gap-1.5">
               {ICON_OPTIONS.map((opt) => (
                 <button
@@ -107,7 +107,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
                   className={`h-9 rounded border font-mono text-base transition-colors ${
                     selectedIcon === opt.char
                       ? "border-green-500 bg-green-500/10 text-green-400"
-                      : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-500"
+                      : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
                   }`}
                 >
                   {opt.char}
@@ -118,7 +118,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
 
           {/* Service name */}
           <div>
-            <label className="text-zinc-400 font-mono text-xs block mb-1.5">
+            <label className="text-zinc-300 font-mono text-xs block mb-1.5">
               // Service Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -134,7 +134,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
 
           {/* Username */}
           <div>
-            <label className="text-zinc-400 font-mono text-xs block mb-1.5">
+            <label className="text-zinc-300 font-mono text-xs block mb-1.5">
               // Username / Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -151,7 +151,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
 
           {/* Confirm username */}
           <div>
-            <label className={`font-mono text-xs block mb-1.5 ${usernameMismatch ? "text-red-400" : "text-zinc-400"}`}>
+            <label className={`font-mono text-xs block mb-1.5 ${usernameMismatch ? "text-red-400" : "text-zinc-300"}`}>
               // Confirm Username / Email
               {usernameMismatch && <span className="ml-2">— do not match</span>}
             </label>
@@ -173,9 +173,9 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
           {/* Password */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-zinc-400 font-mono text-xs">
+              <label className="text-zinc-300 font-mono text-xs">
                 // Password
-                <span className="text-zinc-600 ml-2">(sent to device, stored encrypted)</span>
+                <span className="text-zinc-400 ml-2">(sent to device, stored encrypted)</span>
               </label>
               <button
                 type="button"
@@ -197,7 +197,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-100 font-mono text-xs transition-colors"
               >
                 {showPassword ? "HIDE" : "SHOW"}
               </button>
@@ -207,7 +207,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
 
           {/* Confirm password */}
           <div>
-            <label className={`font-mono text-xs block mb-1.5 ${passwordMismatch ? "text-red-400" : "text-zinc-400"}`}>
+            <label className={`font-mono text-xs block mb-1.5 ${passwordMismatch ? "text-red-400" : "text-zinc-300"}`}>
               // Confirm Password
               {passwordMismatch && <span className="ml-2">— do not match</span>}
             </label>
@@ -222,7 +222,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 font-mono text-xs transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-100 font-mono text-xs transition-colors"
               >
                 {showPassword ? "HIDE" : "SHOW"}
               </button>
@@ -246,7 +246,7 @@ export default function AddCredentialModal({ onAdd, onCancel, initialValues }: A
             <button
               type="button"
               onClick={onCancel}
-              className="border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-zinc-200 font-mono px-5 py-3 rounded transition-colors"
+              className="border border-zinc-700 hover:border-zinc-500 text-zinc-100 hover:text-zinc-200 font-mono px-5 py-3 rounded transition-colors"
             >
               Cancel
             </button>
