@@ -73,9 +73,9 @@ export default function TopBar({
 
       {/* Center: title — flex-1 so it never overlaps neighbours */}
       <div className="flex-1 min-w-0 hidden md:flex justify-center pointer-events-none">
-        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded px-6 py-2.5 pointer-events-auto">
-          <p className="text-zinc-100 font-mono text-lg sm:text-xl font-bold tracking-widest uppercase whitespace-nowrap">NorthStar Companion</p>
-          <p className="text-green-500/70 font-mono text-sm tracking-wider mt-0.5 whitespace-nowrap">// local vault</p>
+        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded px-4 py-1.5 pointer-events-auto">
+          <p className="text-zinc-100 font-mono text-sm font-bold tracking-widest uppercase whitespace-nowrap">NorthStar Companion</p>
+          <p className="text-green-500/70 font-mono text-xs tracking-wider mt-0.5 whitespace-nowrap">// local vault</p>
         </div>
       </div>
 
