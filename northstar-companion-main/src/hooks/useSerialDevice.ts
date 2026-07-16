@@ -63,6 +63,8 @@ export function useSerialDevice() {
 
   const portRef     = useRef<NSASerialPort | null>(null);
   const writerRef   = useRef<WritableStreamDefaultWriter<string> | null>(null);
+  const readerRef   = useRef<ReadableStreamDefaultReader<string> | null>(null);
+  const pipesRef    = useRef<Promise<unknown>[]>([]);
   const msgQueueRef = useRef<Array<(msg: DeviceMessage) => void>>([]);
 
   useEffect(() => {
@@ -115,6 +117,8 @@ export function useSerialDevice() {
     setIsPaired(false);
     portRef.current   = null;
     writerRef.current = null;
+    readerRef.current = null;
+    pipesRef.current  = [];
     msgQueueRef.current = [];
   }
 
@@ -132,16 +136,19 @@ export function useSerialDevice() {
 
       const decoder = new TextDecoderStream();
       // Web Serial readable is Uint8Array; TextDecoderStream writable types as BufferSource — cast required
-      port.readable!.pipeTo(decoder.writable as unknown as WritableStream<Uint8Array>).catch(() => {});
+      // Keep the pipeTo promise so disconnect() can wait for it to actually settle.
+      const readPipeClosed = port.readable!.pipeTo(decoder.writable as unknown as WritableStream<Uint8Array>).catch(() => {});
       const reader = decoder.readable.getReader();
+      readerRef.current = reader;
 
       const encoder = new TextEncoderStream();
       // Web Serial types ship as WritableStream<BufferSource>; cast needed for TextEncoderStream compatibility
-      encoder.readable.pipeTo(port.writable as unknown as WritableStream<Uint8Array>).catch(() => {});
+      const writePipeClosed = encoder.readable.pipeTo(port.writable as unknown as WritableStream<Uint8Array>).catch(() => {});
       writerRef.current = encoder.writable.getWriter();
+      pipesRef.current = [readPipeClosed, writePipeClosed];
 
       setIsConnected(true);
-      port.addEventListener("disconnect", resetPort);
+      port.addEventListener("disconnect", resetPort, { once: true });
 
       // If device already booted before we connected, ask it to re-send PAIR
       setTimeout(() => {
@@ -181,8 +188,27 @@ export function useSerialDevice() {
   }, [dispatchMessage]);
 
   const disconnect = useCallback(async () => {
-    try { await portRef.current?.close(); } catch {}
-    resetPort();
+    const port = portRef.current;
+    try {
+      // Web Serial requires the readable/writable streams to be fully unlocked
+      // (reader cancelled, writer closed) before port.close() will resolve — otherwise
+      // close() hangs indefinitely and the OS-level handle never frees, which is why
+      // reconnecting used to require a full page refresh. Cancel/close both sides first,
+      // then wait for the pump promises to actually settle (capped so a wedged pipeTo
+      // can't hang this forever), then close the port itself with its own cap.
+      await readerRef.current?.cancel().catch(() => {});
+      await writerRef.current?.close().catch(() => {});
+      await Promise.race([
+        Promise.allSettled(pipesRef.current),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+      await Promise.race([
+        (port?.close() ?? Promise.resolve()).catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
+    } finally {
+      resetPort();
+    }
   }, []);
 
   const syncCredentials = useCallback(async (credentials: Credential[]) => {
