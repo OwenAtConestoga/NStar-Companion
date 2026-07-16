@@ -98,7 +98,7 @@ export default function FAQPage() {
       <div className="flex-1 max-w-2xl mx-auto w-full px-6 py-8 space-y-10">
         {/* Intro */}
         <div className="bg-zinc-900 border border-zinc-800 border-l-4 border-l-green-500 rounded-md px-5 py-4">
-          <p className="text-green-400 text-xs mb-1">// Project Charter · Phase 1 · Lead: Owen Oliveira</p>
+          <p className="text-green-400 text-xs mb-1">// Project Charter · Phase 2 · Lead: Owen Oliveira</p>
           <p className="text-zinc-300 text-sm leading-relaxed">
             NorthStar Auth is a hardware-encrypted password manager built for people who
             demand physical sovereignty over their credentials — healthcare professionals,

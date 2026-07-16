@@ -1,50 +1,41 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Dashboard from "@/components/layout/Dashboard";
 import TransferModal from "@/components/device/TransferModal";
 import AddCredentialModal from "@/components/vault/AddCredentialModal";
 import UnlockScreen from "@/components/auth/UnlockScreen";
+import ProfileSelect from "@/components/auth/ProfileSelect";
 import PasswordReadyModal from "@/components/device/PasswordReadyModal";
 import type { Credential } from "@/types/credential";
 import { useSerialDevice } from "@/hooks/useSerialDevice";
 import { useVaultStorage } from "@/hooks/useVaultStorage";
+import { useProfiles } from "@/hooks/useProfiles";
+import { useEffect } from "react";
 
 export default function VaultPage() {
-  const {
-    isSupported,
-    isConnected,
-    isPaired,
-    syncState,
-    lastSync,
-    deviceSelectedIdx,
-    connect,
-    disconnect,
-    syncCredentials,
-    resetSync,
-    clearDeviceSelect,
-  } = useSerialDevice();
+  const { profiles, activeProfile, loaded: profilesLoaded, createProfile, selectProfile, deleteProfile } = useProfiles();
+  const [showProfileSelect, setShowProfileSelect] = useState(false);
 
   const {
-    status,
-    credentials,
-    unlockError,
-    createVault,
-    unlock,
-    saveCredentials,
-    lock,
-  } = useVaultStorage();
+    isSupported, isConnected, isPaired, syncState, lastSync,
+    deviceSelectedIdx, connect, disconnect, syncCredentials, resetSync, clearDeviceSelect,
+  } = useSerialDevice();
+
+  // Only mount the vault hook once a profile is selected
+  const profileId = activeProfile?.id ?? "";
+
+  const {
+    status, credentials, unlockError,
+    createVault, unlock, saveCredentials, lock,
+  } = useVaultStorage(profileId || "default");
 
   const [isTransferring, setIsTransferring]       = useState(false);
   const [isAddingNew, setIsAddingNew]             = useState(false);
   const [editingCredential, setEditingCredential] = useState<Credential | null>(null);
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
 
-  // ── Device SELECT → show password modal ────────────────────────────────────
-  // NOTE: we do NOT auto-copy to clipboard here because navigator.clipboard.writeText()
-  // requires the document to have focus. When the user has clicked away to another app
-  // (to paste), the tab is unfocused and the write silently fails on macOS.
-  // Instead we surface a modal with a COPY button — that user gesture always works.
+  // Device SELECT → show password modal
   useEffect(() => {
     if (deviceSelectedIdx === null || status !== "unlocked") return;
     const cred = credentials[deviceSelectedIdx];
@@ -82,7 +73,35 @@ export default function VaultPage() {
     resetSync();
   }, [resetSync]);
 
-  // ── Render unlock screens ───────────────────────────────────────────────────
+  const handleLock = useCallback(() => {
+    lock();
+    setShowProfileSelect(true);
+  }, [lock]);
+
+  const handleSwitchProfile = useCallback(() => {
+    lock();
+    setShowProfileSelect(true);
+  }, [lock]);
+
+  // ── Profile select screen ───────────────────────────────────────────────────
+
+  // Wait for localStorage read before deciding which screen to show
+  if (!profilesLoaded) return null;
+
+  const needsProfileSelect = profiles.length === 0 || !activeProfile || showProfileSelect;
+
+  if (needsProfileSelect) {
+    return (
+      <ProfileSelect
+        profiles={profiles}
+        onSelect={(id) => { selectProfile(id); setShowProfileSelect(false); }}
+        onCreate={(name) => { createProfile(name); setShowProfileSelect(false); }}
+        onDelete={deleteProfile}
+      />
+    );
+  }
+
+  // ── Vault unlock screens ────────────────────────────────────────────────────
 
   if (status === "loading") return null;
 
@@ -100,6 +119,7 @@ export default function VaultPage() {
     <>
       <Dashboard
         credentials={credentials}
+        profileName={activeProfile.name}
         onInitiateSync={handleInitiateSync}
         onAddNew={() => setIsAddingNew(true)}
         onDelete={handleDelete}
@@ -112,7 +132,8 @@ export default function VaultPage() {
         isSupported={isSupported}
         onConnect={connect}
         onDisconnect={disconnect}
-        onLock={lock}
+        onLock={handleLock}
+        onSwitchProfile={handleSwitchProfile}
         lastSync={lastSync}
       />
 
@@ -137,7 +158,6 @@ export default function VaultPage() {
         />
       )}
 
-      {/* Password modal — shown when user selects account on device */}
       {selectedCredential && (
         <PasswordReadyModal
           credential={selectedCredential}

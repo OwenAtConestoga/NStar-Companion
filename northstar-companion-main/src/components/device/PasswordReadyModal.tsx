@@ -9,41 +9,38 @@ interface PasswordReadyModalProps {
 }
 
 export default function PasswordReadyModal({ credential, onDismiss }: PasswordReadyModalProps) {
-  const [show,   setShow]   = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [showPwd,      setShowPwd]      = useState(false);
+  const [copiedUser,   setCopiedUser]   = useState(false);
+  const [copiedPwd,    setCopiedPwd]    = useState(false);
 
-  // Attempt auto-copy on open — succeeds if the tab is focused.
-  // If the user has already switched to another app, clipboard.writeText will
-  // reject; we fall back gracefully and let them use the COPY button.
-  useEffect(() => {
-    if (!credential.password) return;
-    navigator.clipboard.writeText(credential.password)
-      .then(() => setCopied(true))
-      .catch(() => { /* tab not focused — COPY button is the fallback */ });
-  }, [credential.password]);
-
-  // Auto-dismiss after 30 seconds if user doesn't interact
+  // Auto-dismiss after 30s
   useEffect(() => {
     const t = setTimeout(onDismiss, 30_000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
-  async function handleCopy() {
+  async function copyUsername() {
+    if (!credential.username) return;
+    await navigator.clipboard.writeText(credential.username);
+    setCopiedUser(true);
+    setTimeout(() => setCopiedUser(false), 3000);
+  }
+
+  async function copyPassword() {
     if (!credential.password) return;
     await navigator.clipboard.writeText(credential.password);
-    setCopied(true);
+    setCopiedPwd(true);
     setTimeout(onDismiss, 1200);
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-28 px-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={onDismiss} />
 
       <div className="relative bg-zinc-900 border border-green-500/40 rounded-xl p-6 w-full max-w-sm shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-5">
           <div>
             <p className="text-green-400 font-mono text-xs tracking-widest uppercase mb-0.5">
               // Device selected
@@ -51,7 +48,6 @@ export default function PasswordReadyModal({ credential, onDismiss }: PasswordRe
             <h2 className="text-zinc-100 font-mono text-lg font-bold">
               {credential.icon} {credential.serviceName}
             </h2>
-            <p className="text-zinc-500 font-mono text-xs">{credential.username}</p>
           </div>
           <button
             onClick={onDismiss}
@@ -61,46 +57,72 @@ export default function PasswordReadyModal({ credential, onDismiss }: PasswordRe
           </button>
         </div>
 
-        {/* Password display */}
-        {credential.password ? (
-          <>
-            <div className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2.5 font-mono text-sm flex items-center justify-between mb-3">
-              <span className={show ? "text-zinc-100 break-all" : "text-zinc-400 tracking-widest"}>
-                {show ? credential.password : "••••••••••••"}
-              </span>
-              <button
-                onClick={() => setShow((v) => !v)}
-                className="text-zinc-500 hover:text-zinc-300 font-mono text-xs ml-3 flex-shrink-0 transition-colors"
-              >
-                {show ? "HIDE" : "SHOW"}
-              </button>
-            </div>
+        <div className="flex flex-col gap-3">
 
-            {/* Copy button — user gesture means clipboard.writeText always works */}
-            <div className="flex gap-2">
+          {/* Username row */}
+          <div>
+            <p className="text-zinc-500 font-mono text-xs mb-1.5">// Username / Email</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-sm text-zinc-200 truncate">
+                {credential.username || <span className="text-zinc-600">none</span>}
+              </div>
               <button
-                onClick={handleCopy}
-                className={`flex-1 font-bold font-mono py-3 rounded transition-colors ${
-                  copied
-                    ? "bg-green-500/20 border border-green-500/40 text-green-400"
-                    : "bg-green-500 hover:bg-green-400 text-black"
+                onClick={copyUsername}
+                disabled={!credential.username}
+                className={`flex-shrink-0 font-mono text-xs font-bold px-3 py-2 rounded border transition-colors ${
+                  copiedUser
+                    ? "bg-green-500/20 border-green-500/40 text-green-400"
+                    : "bg-zinc-700 border-zinc-600 hover:bg-zinc-600 hover:border-zinc-500 text-zinc-200"
                 }`}
               >
-                {copied ? "✓ COPIED — PASTE NOW (⌘V / Ctrl+V)" : "COPY PASSWORD"}
-              </button>
-              <button
-                onClick={onDismiss}
-                className="border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-zinc-200 font-mono px-4 rounded transition-colors"
-              >
-                Cancel
+                {copiedUser ? "✓ COPIED" : "COPY"}
               </button>
             </div>
-          </>
-        ) : (
-          <p className="text-zinc-500 font-mono text-xs border border-zinc-700 rounded px-3 py-2">
-            No password saved for this account. Edit it in the vault to add one.
+          </div>
+
+          {/* Password row */}
+          <div>
+            <p className="text-zinc-500 font-mono text-xs mb-1.5">// Password</p>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-sm flex items-center justify-between min-w-0">
+                <span className={showPwd ? "text-zinc-100 break-all text-xs" : "text-zinc-400 tracking-widest"}>
+                  {credential.password ? (showPwd ? credential.password : "••••••••••••") : <span className="text-zinc-600">none</span>}
+                </span>
+                {credential.password && (
+                  <button
+                    onClick={() => setShowPwd((v) => !v)}
+                    className="text-zinc-500 hover:text-zinc-300 font-mono text-xs ml-2 flex-shrink-0 transition-colors"
+                  >
+                    {showPwd ? "HIDE" : "SHOW"}
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={copyPassword}
+                disabled={!credential.password}
+                className={`flex-shrink-0 font-mono text-xs font-bold px-3 py-2 rounded border transition-colors ${
+                  copiedPwd
+                    ? "bg-green-500/20 border-green-500/40 text-green-400"
+                    : "bg-green-500 border-green-500 hover:bg-green-400 text-black"
+                }`}
+              >
+                {copiedPwd ? "✓ COPIED" : "COPY"}
+              </button>
+            </div>
+          </div>
+
+          {/* Hint */}
+          <p className="text-zinc-600 font-mono text-xs text-center">
+            Copy username → paste → tab → copy password → paste
           </p>
-        )}
+
+          <button
+            onClick={onDismiss}
+            className="w-full border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-zinc-200 font-mono text-sm py-2 rounded transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
 
       </div>
     </div>

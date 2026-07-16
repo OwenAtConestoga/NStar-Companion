@@ -13,8 +13,10 @@ export default function WelcomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 font-mono text-zinc-100">
       {/* Nav */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <span className="text-green-500 font-bold text-lg">N*</span>
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-zinc-800">
+        <Link href="/" className="text-green-500 font-bold text-4xl sm:text-5xl font-mono hover:text-green-400 transition-colors leading-none">
+          N*
+        </Link>
         <div className="flex items-center gap-4">
           <Link href="/faq"   className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">// FAQ</Link>
           <Link href="/vault" className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">// Vault</Link>
@@ -70,7 +72,7 @@ export default function WelcomePage() {
               ENTER VAULT →
             </button>
           </Link>
-          <Link href="/faq" className="text-zinc-600 hover:text-zinc-400 text-xs transition-colors underline underline-offset-4">
+          <Link href="/faq" className="text-zinc-300 hover:text-green-400 text-xs transition-colors underline underline-offset-4">
             Read the docs &amp; FAQ
           </Link>
         </div>
@@ -78,8 +80,8 @@ export default function WelcomePage() {
 
       {/* Footer */}
       <div className="px-6 py-4 border-t border-zinc-800 flex items-center justify-between">
-        <span className="text-zinc-600 text-xs">// NorthStar Auth (NSA) · Phase 1</span>
-        <span className="text-zinc-600 text-xs">Protocol: AES-256-GCM</span>
+        <span className="text-zinc-400 text-xs">// NorthStar Auth (NSA) · Phase 2</span>
+        <span className="text-zinc-400 text-xs">Protocol: AES-256-GCM</span>
       </div>
     </div>
   );
