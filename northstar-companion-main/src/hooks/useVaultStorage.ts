@@ -22,14 +22,14 @@ const toB64 = (u8: Uint8Array): string =>
   btoa(String.fromCharCode(...u8));
 
 const fromB64 = (s: string): Uint8Array =>
-  Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  new Uint8Array(Array.from(atob(s), (c) => c.charCodeAt(0)));
 
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const baseKey = await crypto.subtle.importKey(
     "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     true,
@@ -47,9 +47,9 @@ async function encryptJSON(data: unknown, key: CryptoKey): Promise<string> {
 async function decryptJSON(payload: string, key: CryptoKey): Promise<unknown> {
   const [ivB64, dataB64] = payload.split(":");
   const plain = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromB64(ivB64), tagLength: 128 },
+    { name: "AES-GCM", iv: fromB64(ivB64) as BufferSource, tagLength: 128 },
     key,
-    fromB64(dataB64)
+    fromB64(dataB64) as BufferSource
   );
   return JSON.parse(new TextDecoder().decode(plain));
 }
@@ -82,7 +82,7 @@ export function useVaultStorage(profileId: string) {
           const session: SessionData = JSON.parse(sessionRaw);
           if (Date.now() < session.expiresAt) {
             const key = await crypto.subtle.importKey(
-              "raw", fromB64(session.keyB64), { name: "AES-GCM" }, true, ["encrypt", "decrypt"]
+              "raw", fromB64(session.keyB64) as BufferSource, { name: "AES-GCM" }, true, ["encrypt", "decrypt"]
             );
             const stored: StoredVault = JSON.parse(raw);
             const creds = (await decryptJSON(stored.payload, key)) as Credential[];
