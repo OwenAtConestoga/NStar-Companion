@@ -109,6 +109,7 @@ Requires=northstar-gadget.service
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/northstar
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 /home/pi/northstar/northstar_pi.py
 Restart=always
 RestartSec=3

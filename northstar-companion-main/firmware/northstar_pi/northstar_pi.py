@@ -262,8 +262,8 @@ def render(disp: Display, app: App):
     def hdr(title: str):
         draw.rectangle([0, 0, W, HDR_H - 1], fill=ZINC_900)
         draw.line([0, HDR_H - 1, W, HDR_H - 1], fill=ZINC_800, width=1)
-        draw.text((12, 12), "N*", font=fnt(18, bold=True), fill=GREEN_500)
-        draw.text((40, 14), title,  font=fnt(16),           fill=ZINC_100)
+        draw.text((12, 11), "N*", font=fnt(20, bold=True), fill=GREEN_500)
+        draw.text((42, 13), title,  font=fnt(18),           fill=ZINC_100)
 
     def row(slot: int, label: str, sel: bool):
         y = HDR_H + slot * ROW_H
@@ -272,29 +272,29 @@ def render(disp: Display, app: App):
         if sel:
             draw.rectangle([0, y, W, y + ROW_H - 1], fill=GREEN_BG)
             draw.rectangle([0, y, 3, y + ROW_H - 1], fill=GREEN_500)
-            draw.text((12, y + 13), "~", font=fnt(17), fill=GREEN_400)
-        draw.text((30, y + 13), label, font=fnt(16), fill=GREEN_400 if sel else ZINC_400)
+            draw.text((12, y + 11), "~", font=fnt(20), fill=GREEN_400)
+        draw.text((30, y + 11), label, font=fnt(19), fill=GREEN_400 if sel else ZINC_400)
 
     def ctr(text: str, y: int, f, color=ZINC_100):
         bbox = draw.textbbox((0, 0), text, font=f)
         draw.text(((W - bbox[2] + bbox[0]) // 2, y), text, font=f, fill=color)
 
-    def mono(text: str, y: int, size: int = 14, color=ZINC_400):
+    def mono(text: str, y: int, size: int = 16, color=ZINC_400):
         draw.text((14, y), text, font=fnt(size), fill=color)
 
     # ── PAIRING ───────────────────────────────────────────────────────────────
     if s == S.PAIRING:
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth",  font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// connect USB cable",  66, size=15, color=ZINC_100)
-        mono("// then open the",      92, size=14, color=ZINC_400)
-        mono("// companion app",     114, size=14, color=ZINC_400)
-        draw.line([12, 142, W - 12, 142], fill=ZINC_700, width=1)
-        mono("~ waiting for host_",  158, size=13, color=GREEN_400)
+        draw.text((12, 13), "N*", font=fnt(22, bold=True), fill=GREEN_400)
+        draw.text((46, 17), "NorthStar Auth",  font=fnt(18), fill=GREEN_500)
+        draw.line([12, 52, W - 12, 52], fill=ZINC_700, width=1)
+        mono("// connect USB",       68,  size=17, color=ZINC_100)
+        mono("// cable, then open",  94,  size=16, color=ZINC_400)
+        mono("// the companion app", 118, size=16, color=ZINC_400)
+        draw.line([12, 146, W - 12, 146], fill=ZINC_700, width=1)
+        mono("~ waiting for host_",  164, size=16, color=GREEN_400)
         if int(time.time()) % 2 == 0:
-            draw.rectangle([14, 188, W - 14, 190], fill=GREEN_500)
+            draw.rectangle([14, 196, W - 14, 199], fill=GREEN_500)
 
     # ── HOME ──────────────────────────────────────────────────────────────────
     elif s == S.HOME:
@@ -307,8 +307,8 @@ def render(disp: Display, app: App):
         hdr("// accounts")
         total = len(app.creds) + 1
         if not app.creds:
-            ctr("// no accounts yet.",   108, fnt(14), ZINC_500)
-            ctr("// sync from the app.", 130, fnt(13), ZINC_700)
+            ctr("// no accounts yet.",   110, fnt(17), ZINC_400)
+            ctr("// sync from the app.", 136, fnt(16), ZINC_600)
         else:
             start = max(0, min(app.cursor, total - ROWS))
             for slot in range(ROWS):
@@ -327,65 +327,65 @@ def render(disp: Display, app: App):
     elif s == S.DETAIL:
         cred = app.creds[app.cursor]
         email = cred.get("usr", "") or "—"
-        if len(email) > 26:
-            email = email[:25] + "…"
+        if len(email) > 22:
+            email = email[:21] + "…"
         hdr(cred["svc"])
-        mono("// service",           56,  size=11, color=ZINC_500)
-        mono(cred["svc"],            70,  size=15, color=ZINC_100)
-        mono("// email",             96,  size=11, color=ZINC_500)
-        mono(email,                  110, size=13, color=ZINC_100)
-        draw.line([12, 138, W - 12, 138], fill=ZINC_800, width=1)
-        mono("// KEY1 or joystick",  150, size=13, color=ZINC_400)
-        mono("// to type email+pwd", 168, size=13, color=ZINC_400)
-        draw.line([12, 192, W - 12, 192], fill=ZINC_800, width=1)
-        mono("~ KEY2=back  KEY3=home", 202, size=11, color=ZINC_600)
+        mono("// service",           54,  size=13, color=ZINC_500)
+        mono(cred["svc"],            70,  size=18, color=ZINC_100)
+        mono("// email",             100, size=13, color=ZINC_500)
+        mono(email,                  116, size=16, color=ZINC_100)
+        draw.line([12, 144, W - 12, 144], fill=ZINC_800, width=1)
+        mono("// KEY1 or joystick",  154, size=15, color=ZINC_400)
+        mono("// to type email+pwd", 174, size=15, color=ZINC_400)
+        draw.line([12, 200, W - 12, 200], fill=ZINC_800, width=1)
+        mono("~ K2=back  K3=home",   208, size=13, color=ZINC_500)
 
     # ── TYPING ────────────────────────────────────────────────────────────────
     elif s == S.TYPING:
         cred = app.creds[app.cursor] if app.cursor < len(app.creds) else {}
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// typing credentials...", 68, size=14, color=GREEN_400)
-        mono(cred.get("svc", ""),    94, size=16, color=ZINC_100)
-        draw.line([12, 124, W - 12, 124], fill=ZINC_800, width=1)
-        mono("~ do not unplug_",     138, size=12, color=ZINC_500)
+        draw.text((12, 13), "N*", font=fnt(22, bold=True), fill=GREEN_400)
+        draw.text((46, 17), "NorthStar Auth", font=fnt(18), fill=GREEN_500)
+        draw.line([12, 52, W - 12, 52], fill=ZINC_700, width=1)
+        mono("// typing credentials...", 70, size=16, color=GREEN_400)
+        mono(cred.get("svc", ""),    98, size=19, color=ZINC_100)
+        draw.line([12, 130, W - 12, 130], fill=ZINC_800, width=1)
+        mono("~ do not unplug_",     144, size=15, color=ZINC_400)
 
     # ── SENT ──────────────────────────────────────────────────────────────────
     elif s == S.SENT:
         cred = app.creds[app.cursor] if app.cursor < len(app.creds) else {}
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// password sent",     74,  size=15, color=GREEN_400)
-        mono(cred.get("svc", ""),    98,  size=16, color=ZINC_100)
-        draw.line([12, 130, W - 12, 130], fill=ZINC_800, width=1)
-        ctr("✓",                     142, fnt(28, bold=True), GREEN_500)
-        mono("~ returning...",       186, size=12, color=ZINC_500)
+        draw.text((12, 13), "N*", font=fnt(22, bold=True), fill=GREEN_400)
+        draw.text((46, 17), "NorthStar Auth", font=fnt(18), fill=GREEN_500)
+        draw.line([12, 52, W - 12, 52], fill=ZINC_700, width=1)
+        mono("// credentials sent",  76,  size=17, color=GREEN_400)
+        mono(cred.get("svc", ""),    102, size=19, color=ZINC_100)
+        draw.line([12, 134, W - 12, 134], fill=ZINC_800, width=1)
+        ctr("✓",                     144, fnt(32, bold=True), GREEN_500)
+        mono("~ returning...",       190, size=14, color=ZINC_400)
 
     # ── CONFIRM ───────────────────────────────────────────────────────────────
     elif s in (S.REMOVE_CFM, S.DEL_ALL_CFM):
         title   = "// remove all?" if s == S.REMOVE_CFM else "// delete all?"
         yes_sel = (app.cursor == 0)
         hdr(title)
-        mono("// cannot be undone.", 60, size=13, color=ZINC_500)
-        draw.line([12, 84, W - 12, 84], fill=ZINC_800, width=1)
+        mono("// cannot be undone.", 60, size=15, color=ZINC_400)
+        draw.line([12, 86, W - 12, 86], fill=ZINC_800, width=1)
 
         def btn(label, x1, x2, y, active):
             is_yes = label == "YES"
             fill   = (RED_BG if is_yes else GREEN_BG) if active else ZINC_900
             tcol   = (RED_400 if is_yes else GREEN_400) if active else ZINC_500
-            draw.rectangle([x1, y, x2, y + 50], fill=fill)
-            draw.rectangle([x1, y, x2, y + 50], outline=ZINC_700, width=1)
-            f = fnt(20, bold=True)
+            draw.rectangle([x1, y, x2, y + 52], fill=fill)
+            draw.rectangle([x1, y, x2, y + 52], outline=ZINC_700, width=1)
+            f = fnt(22, bold=True)
             bb = draw.textbbox((0,0), label, font=f)
-            draw.text((x1 + (x2-x1-(bb[2]-bb[0]))//2, y+14), label, font=f, fill=tcol)
+            draw.text((x1 + (x2-x1-(bb[2]-bb[0]))//2, y+15), label, font=f, fill=tcol)
 
-        btn("YES", 14, 112, 96, active=yes_sel)
-        btn("NO", 128, 226, 96, active=not yes_sel)
-        mono("~ KEY2 = back  KEY3 = home", 162, size=11, color=ZINC_600)
+        btn("YES", 14, 112, 100, active=yes_sel)
+        btn("NO", 128, 226, 100, active=not yes_sel)
+        mono("~ K2=back  K3=home", 172, size=13, color=ZINC_500)
 
     # ── SETTINGS ──────────────────────────────────────────────────────────────
     elif s == S.SETTINGS:
@@ -404,38 +404,38 @@ def render(disp: Display, app: App):
             ("display",   '1.3" 240x240'),
         ]
         for i, (k, v) in enumerate(rows_data):
-            y = HDR_H + 6 + i * 38
+            y = HDR_H + 4 + i * 38
             if i > 0:
                 draw.line([12, y - 2, W - 12, y - 2], fill=ZINC_800, width=1)
-            mono(f"// {k}", y,      size=11, color=ZINC_500)
-            mono(v,          y + 14, size=15, color=ZINC_100)
+            mono(f"// {k}", y,      size=13, color=ZINC_500)
+            mono(v,          y + 15, size=17, color=ZINC_100)
 
     # ── RECEIVING ─────────────────────────────────────────────────────────────
     elif s == S.RECEIVING:
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// syncing vault...", 68, size=15, color=GREEN_400)
+        draw.text((12, 13), "N*", font=fnt(22, bold=True), fill=GREEN_400)
+        draw.text((46, 17), "NorthStar Auth", font=fnt(18), fill=GREEN_500)
+        draw.line([12, 52, W - 12, 52], fill=ZINC_700, width=1)
+        mono("// syncing vault...", 70, size=17, color=GREEN_400)
         pct   = min(95, int(len(app.recv_buf) * 100 / app.recv_len)) if app.recv_len else 0
         bar_w = int((W - 32) * pct / 100)
-        draw.rectangle([16, 106, W - 16, 128], fill=ZINC_800)
+        draw.rectangle([16, 108, W - 16, 132], fill=ZINC_800)
         if bar_w > 0:
-            draw.rectangle([16, 106, 16 + bar_w, 128], fill=GREEN_500)
-        mono(f"~ {pct}% complete", 138, size=13, color=ZINC_400)
-        mono(f"// {len(app.recv_buf)} / {app.recv_len} bytes", 158, size=12, color=ZINC_600)
+            draw.rectangle([16, 108, 16 + bar_w, 132], fill=GREEN_500)
+        mono(f"~ {pct}% complete", 144, size=15, color=ZINC_400)
+        mono(f"// {len(app.recv_buf)} / {app.recv_len} bytes", 166, size=14, color=ZINC_500)
 
     # ── SYNC DONE ─────────────────────────────────────────────────────────────
     elif s == S.SYNC_DONE:
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// sync complete",  72, size=15, color=GREEN_400)
-        draw.line([12, 104, W - 12, 104], fill=ZINC_800, width=1)
+        draw.text((12, 13), "N*", font=fnt(22, bold=True), fill=GREEN_400)
+        draw.text((46, 17), "NorthStar Auth", font=fnt(18), fill=GREEN_500)
+        draw.line([12, 52, W - 12, 52], fill=ZINC_700, width=1)
+        mono("// sync complete",  76, size=17, color=GREEN_400)
+        draw.line([12, 108, W - 12, 108], fill=ZINC_800, width=1)
         n = app.sync_n
-        mono(f"// {n} account{'s' if n!=1 else ''} saved.", 116, size=14, color=ZINC_100)
-        mono("~ vault updated_", 140, size=13, color=GREEN_500)
+        mono(f"// {n} account{'s' if n!=1 else ''} saved.", 122, size=16, color=ZINC_100)
+        mono("~ vault updated_", 148, size=15, color=GREEN_500)
 
     disp.show(img)
 
