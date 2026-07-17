@@ -214,29 +214,39 @@ _HID_MAP: dict[str, tuple[int, bool]] = {
     '/':(0x38,False),'?':(0x38,True),
 }
 
-_RELEASE = bytes(8)  # all-zero HID report = no keys pressed
+_RELEASE    = bytes(8)  # all-zero HID report = no keys pressed
+TAB_KEYCODE = 0x2B
 
-def type_password(password: str) -> bool:
-    """Write password to /dev/hidg0 as USB HID keyboard keypresses.
-    Returns True on success, False if HID device unavailable."""
+def _hid_press(hid, modifier: int, keycode: int):
+    hid.write(bytes([modifier, 0x00, keycode, 0x00, 0x00, 0x00, 0x00, 0x00]))
+    hid.flush()
+    time.sleep(0.006)
+    hid.write(_RELEASE)
+    hid.flush()
+    time.sleep(0.006)
+
+def _hid_type(hid, text: str):
+    for ch in text:
+        if ch not in _HID_MAP:
+            print(f"[hid] skipping unmapped char: {repr(ch)}")
+            continue
+        keycode, shift = _HID_MAP[ch]
+        _hid_press(hid, 0x02 if shift else 0x00, keycode)
+
+def type_credential(username: str, password: str) -> bool:
+    """Write username + Tab + password to /dev/hidg0 as USB HID keyboard
+    keypresses, matching the companion app's username/password pair per
+    account. Returns True on success, False if HID device unavailable."""
     if not os.path.exists(HID_DEV):
         print(f"[hid] {HID_DEV} not found — gadget not ready")
         return False
     try:
         with open(HID_DEV, "wb") as hid:
-            for ch in password:
-                if ch not in _HID_MAP:
-                    print(f"[hid] skipping unmapped char: {repr(ch)}")
-                    continue
-                keycode, shift = _HID_MAP[ch]
-                modifier = 0x02 if shift else 0x00   # left shift
-                hid.write(bytes([modifier, 0x00, keycode, 0x00, 0x00, 0x00, 0x00, 0x00]))
-                hid.flush()
-                time.sleep(0.006)
-                hid.write(_RELEASE)
-                hid.flush()
-                time.sleep(0.006)
-        print(f"[hid] typed {len(password)} chars")
+            if username:
+                _hid_type(hid, username)
+                _hid_press(hid, 0x00, TAB_KEYCODE)
+            _hid_type(hid, password)
+        print(f"[hid] typed {len(username)}-char username + tab + {len(password)}-char password")
         return True
     except OSError as e:
         print(f"[hid] error: {e}")
@@ -316,14 +326,19 @@ def render(disp: Display, app: App):
     # ── DETAIL ────────────────────────────────────────────────────────────────
     elif s == S.DETAIL:
         cred = app.creds[app.cursor]
+        email = cred.get("usr", "") or "—"
+        if len(email) > 26:
+            email = email[:25] + "…"
         hdr(cred["svc"])
-        mono("// service",           60,  size=12, color=ZINC_500)
-        mono(cred["svc"],            76,  size=16, color=ZINC_100)
-        draw.line([12, 108, W - 12, 108], fill=ZINC_800, width=1)
-        mono("// KEY1 or joystick",  120, size=13, color=ZINC_400)
-        mono("// to type password",  138, size=13, color=ZINC_400)
-        draw.line([12, 162, W - 12, 162], fill=ZINC_800, width=1)
-        mono("~ KEY2=back  KEY3=home", 172, size=11, color=ZINC_600)
+        mono("// service",           56,  size=11, color=ZINC_500)
+        mono(cred["svc"],            70,  size=15, color=ZINC_100)
+        mono("// email",             96,  size=11, color=ZINC_500)
+        mono(email,                  110, size=13, color=ZINC_100)
+        draw.line([12, 138, W - 12, 138], fill=ZINC_800, width=1)
+        mono("// KEY1 or joystick",  150, size=13, color=ZINC_400)
+        mono("// to type email+pwd", 168, size=13, color=ZINC_400)
+        draw.line([12, 192, W - 12, 192], fill=ZINC_800, width=1)
+        mono("~ KEY2=back  KEY3=home", 202, size=11, color=ZINC_600)
 
     # ── TYPING ────────────────────────────────────────────────────────────────
     elif s == S.TYPING:
@@ -332,7 +347,7 @@ def render(disp: Display, app: App):
         draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
         draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
         draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// typing password...", 68, size=14, color=GREEN_400)
+        mono("// typing credentials...", 68, size=14, color=GREEN_400)
         mono(cred.get("svc", ""),    94, size=16, color=ZINC_100)
         draw.line([12, 124, W - 12, 124], fill=ZINC_800, width=1)
         mono("~ do not unplug_",     138, size=12, color=ZINC_500)
@@ -384,7 +399,7 @@ def render(disp: Display, app: App):
         rows_data = [
             ("accounts",  str(len(app.creds))),
             ("storage",   "microSD"),
-            ("firmware",  "v1.0"),
+            ("firmware",  "v2.0"),
             ("hardware",  "Pi Zero 2 W"),
             ("display",   '1.3" 240x240'),
         ]
@@ -584,7 +599,7 @@ def select(app: App, dirty: threading.Event):
                 except Exception as e:
                     print(f"[serial] SELECT send error: {e}")
             # 2. Attempt HID keyboard typing (works on Windows without any approval)
-            type_password(c["pwd"])
+            type_credential(c.get("usr", ""), c["pwd"])
             # 3. Show "sent" confirmation, then return to detail screen
             a.state = S.SENT
             ev.set()

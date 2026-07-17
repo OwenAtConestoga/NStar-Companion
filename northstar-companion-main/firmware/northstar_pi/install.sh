@@ -31,6 +31,7 @@ echo "Copying firmware..."
 scp "$SCRIPT_DIR/northstar_pi.py"       "$PI_USER@$PI_HOST:$DEST/"
 scp "$SCRIPT_DIR/requirements.txt"      "$PI_USER@$PI_HOST:$DEST/"
 scp "$SCRIPT_DIR/setup_usb_gadget.sh"   "$PI_USER@$PI_HOST:/tmp/"
+scp "$SCRIPT_DIR/northstar-gadget.sh"   "$PI_USER@$PI_HOST:/tmp/"
 
 # Run setup script as root
 echo "Running setup (sudo required)..."
