@@ -42,4 +42,19 @@ ln -sf functions/hid.usb0 configs/c.1/
 
 UDC=$(ls /sys/class/udc | head -1)
 echo "$UDC" > UDC
+
+# /dev/hidg0 is created root:root mode 600 by default — the northstar service
+# runs as user 'pi' (not root), so writing a password would silently fail
+# with EACCES otherwise. Wait for the node, then open it up to the dialout
+# group (same group /dev/ttyGS0 already uses, and 'pi' is already a member).
+for i in $(seq 1 20); do
+    [ -e /dev/hidg0 ] && break
+    sleep 0.1
+done
+if [ -e /dev/hidg0 ]; then
+    chown root:dialout /dev/hidg0
+    chmod 660 /dev/hidg0
+    echo "[gadget] /dev/hidg0 permissions relaxed for dialout group"
+fi
+
 echo "[gadget] bound to $UDC — /dev/ttyGS0 and /dev/hidg0 ready"

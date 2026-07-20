@@ -167,6 +167,7 @@ class App:
     state:      S    = S.PAIRING
     cursor:     int  = 0
     detail_idx: int  = 0      # which account is open — cursor means field (0=email,1=pwd) while in DETAIL
+    send_ok:    bool = True   # did the last HID type_text() actually succeed?
     creds:      list = field(default_factory=list)
     recv_len:   int  = 0
     recv_buf:   str  = ""
@@ -358,14 +359,20 @@ def render(disp: Display, app: App):
     elif s == S.SENT:
         cred = app.creds[app.detail_idx] if app.detail_idx < len(app.creds) else {}
         field_sent = "email" if app.cursor == 0 else "password"
-        draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
-        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
+        ok = app.send_ok
+        accent = GREEN_500 if ok else RED_400
+        draw.rectangle([0, 0, W, H], fill=LCD_BG if ok else RED_BG)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400 if ok else RED_400)
+        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500 if ok else RED_400)
         draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
-        mono(f"// {field_sent} sent",  78,  size=19, color=GREEN_400)
-        mono(cred.get("svc", ""),    106, size=22, color=ZINC_100)
+        if ok:
+            mono(f"// {field_sent} sent",  78,  size=19, color=GREEN_400)
+        else:
+            mono(f"// {field_sent} FAILED", 78,  size=19, color=RED_400)
+            mono("// gadget not ready?",    102, size=15, color=ZINC_400)
+        mono(cred.get("svc", ""),    106 if ok else 126, size=22, color=ZINC_100)
         draw.line([12, 138, W - 12, 138], fill=ZINC_800, width=1)
-        ctr("✓",                     146, fnt(34, bold=True), GREEN_500)
+        ctr("✓" if ok else "✗",      146, fnt(34, bold=True), accent)
         mono("~ returning...",       194, size=16, color=ZINC_400)
 
     # ── CONFIRM ───────────────────────────────────────────────────────────────
@@ -607,8 +614,9 @@ def select(app: App, dirty: threading.Event):
                 except Exception as e:
                     print(f"[serial] SELECT send error: {e}")
             # 2. Type only the field the user picked (works on Windows without any approval)
-            type_text(c.get("usr", "") if fld == "email" else c["pwd"])
-            # 3. Show "sent" confirmation, then return to detail screen
+            ok = type_text(c.get("usr", "") if fld == "email" else c["pwd"])
+            # 3. Show a confirmation reflecting what actually happened, then return
+            a.send_ok = ok
             a.state = S.SENT
             ev.set()
             time.sleep(1.8)
