@@ -164,14 +164,16 @@ SETTINGS_ITEMS = ["// device info"]
 
 @dataclass
 class App:
-    state:    S    = S.PAIRING
-    cursor:   int  = 0
-    creds:    list = field(default_factory=list)
-    recv_len: int  = 0
-    recv_buf: str  = ""
-    sync_n:   int  = 0
-    _dbn:     dict = field(default_factory=dict)
-    _port:    object = None   # live serial.Serial ref — set by serial_thread
+    state:      S    = S.PAIRING
+    cursor:     int  = 0
+    detail_idx: int  = 0      # which account is open — cursor means field (0=email,1=pwd) while in DETAIL
+    send_ok:    bool = True   # did the last HID type_text() actually succeed?
+    creds:      list = field(default_factory=list)
+    recv_len:   int  = 0
+    recv_buf:   str  = ""
+    sync_n:     int  = 0
+    _dbn:       dict = field(default_factory=dict)
+    _port:      object = None   # live serial.Serial ref — set by serial_thread
 
 # ── HID keyboard ──────────────────────────────────────────────────────────────
 
@@ -214,8 +216,7 @@ _HID_MAP: dict[str, tuple[int, bool]] = {
     '/':(0x38,False),'?':(0x38,True),
 }
 
-_RELEASE    = bytes(8)  # all-zero HID report = no keys pressed
-TAB_KEYCODE = 0x2B
+_RELEASE = bytes(8)  # all-zero HID report = no keys pressed
 
 def _hid_press(hid, modifier: int, keycode: int):
     hid.write(bytes([modifier, 0x00, keycode, 0x00, 0x00, 0x00, 0x00, 0x00]))
@@ -233,20 +234,16 @@ def _hid_type(hid, text: str):
         keycode, shift = _HID_MAP[ch]
         _hid_press(hid, 0x02 if shift else 0x00, keycode)
 
-def type_credential(username: str, password: str) -> bool:
-    """Write username + Tab + password to /dev/hidg0 as USB HID keyboard
-    keypresses, matching the companion app's username/password pair per
-    account. Returns True on success, False if HID device unavailable."""
+def type_text(text: str) -> bool:
+    """Write a single field (email or password) to /dev/hidg0 as USB HID
+    keyboard keypresses. Returns True on success, False if HID unavailable."""
     if not os.path.exists(HID_DEV):
         print(f"[hid] {HID_DEV} not found — gadget not ready")
         return False
     try:
         with open(HID_DEV, "wb") as hid:
-            if username:
-                _hid_type(hid, username)
-                _hid_press(hid, 0x00, TAB_KEYCODE)
-            _hid_type(hid, password)
-        print(f"[hid] typed {len(username)}-char username + tab + {len(password)}-char password")
+            _hid_type(hid, text)
+        print(f"[hid] typed {len(text)} chars")
         return True
     except OSError as e:
         print(f"[hid] error: {e}")
@@ -325,23 +322,30 @@ def render(disp: Display, app: App):
 
     # ── DETAIL ────────────────────────────────────────────────────────────────
     elif s == S.DETAIL:
-        cred = app.creds[app.cursor]
+        cred = app.creds[app.detail_idx]
         email = cred.get("usr", "") or "—"
         if len(email) > 18:
             email = email[:17] + "…"
         hdr(cred["svc"])
-        mono("// service",           52,  size=15, color=ZINC_500)
-        mono(cred["svc"],            68,  size=22, color=ZINC_100)
-        mono("// email",             98,  size=15, color=ZINC_500)
-        mono(email,                  114, size=19, color=ZINC_100)
-        draw.line([12, 142, W - 12, 142], fill=ZINC_800, width=1)
-        mono("// KEY1 types both",   153, size=18, color=ZINC_400)
-        draw.line([12, 182, W - 12, 182], fill=ZINC_800, width=1)
-        mono("~ K2=back  K3=home",   192, size=15, color=ZINC_500)
+
+        def field_row(label, value, y, sel):
+            if sel:
+                draw.rectangle([0, y, W, y + 40], fill=GREEN_BG)
+                draw.rectangle([0, y, 3, y + 40], fill=GREEN_500)
+            mono(label, y + 3,  size=13, color=GREEN_400 if sel else ZINC_500)
+            mono(value, y + 18, size=18, color=GREEN_400 if sel else ZINC_100)
+
+        field_row("// email",    email,          56,  app.cursor == 0)
+        field_row("// password", "••••••••••",   100, app.cursor == 1)
+
+        draw.line([12, 146, W - 12, 146], fill=ZINC_800, width=1)
+        mono("// KEY1 to send",      156, size=17, color=ZINC_400)
+        draw.line([12, 184, W - 12, 184], fill=ZINC_800, width=1)
+        mono("~ K2=back  K3=home",   194, size=15, color=ZINC_500)
 
     # ── TYPING ────────────────────────────────────────────────────────────────
     elif s == S.TYPING:
-        cred = app.creds[app.cursor] if app.cursor < len(app.creds) else {}
+        cred = app.creds[app.detail_idx] if app.detail_idx < len(app.creds) else {}
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
         draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
         draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
@@ -353,15 +357,22 @@ def render(disp: Display, app: App):
 
     # ── SENT ──────────────────────────────────────────────────────────────────
     elif s == S.SENT:
-        cred = app.creds[app.cursor] if app.cursor < len(app.creds) else {}
-        draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
-        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
+        cred = app.creds[app.detail_idx] if app.detail_idx < len(app.creds) else {}
+        field_sent = "email" if app.cursor == 0 else "password"
+        ok = app.send_ok
+        accent = GREEN_500 if ok else RED_400
+        draw.rectangle([0, 0, W, H], fill=LCD_BG if ok else RED_BG)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400 if ok else RED_400)
+        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500 if ok else RED_400)
         draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
-        mono("// credentials sent",  78,  size=19, color=GREEN_400)
-        mono(cred.get("svc", ""),    106, size=22, color=ZINC_100)
+        if ok:
+            mono(f"// {field_sent} sent",  78,  size=19, color=GREEN_400)
+        else:
+            mono(f"// {field_sent} FAILED", 78,  size=19, color=RED_400)
+            mono("// gadget not ready?",    102, size=15, color=ZINC_400)
+        mono(cred.get("svc", ""),    106 if ok else 126, size=22, color=ZINC_100)
         draw.line([12, 138, W - 12, 138], fill=ZINC_800, width=1)
-        ctr("✓",                     146, fnt(34, bold=True), GREEN_500)
+        ctr("✓" if ok else "✗",      146, fnt(34, bold=True), accent)
         mono("~ returning...",       194, size=16, color=ZINC_400)
 
     # ── CONFIRM ───────────────────────────────────────────────────────────────
@@ -564,6 +575,7 @@ def menu_len(app: App) -> int:
     if app.state == S.HOME:                         return len(HOME_ITEMS)
     if app.state == S.ACCOUNTS:                     return len(app.creds) + 1
     if app.state == S.SETTINGS:                     return len(SETTINGS_ITEMS)
+    if app.state == S.DETAIL:                       return 2  # email, password
     if app.state in (S.REMOVE_CFM, S.DEL_ALL_CFM): return 2
     return 1
 
@@ -580,13 +592,18 @@ def select(app: App, dirty: threading.Event):
         elif app.cursor == 2: app.state = S.DEL_ALL_CFM; app.cursor = 1
     elif s == S.ACCOUNTS:
         if not app.creds: return
-        if app.cursor < len(app.creds): app.state = S.DETAIL
-        else:                           app.state = S.REMOVE_CFM; app.cursor = 1
+        if app.cursor < len(app.creds):
+            app.detail_idx = app.cursor
+            app.state = S.DETAIL
+            app.cursor = 0   # land on "email" field first
+        else:
+            app.state = S.REMOVE_CFM; app.cursor = 1
     elif s == S.DETAIL:
-        idx  = app.cursor
-        cred = app.creds[idx]
+        idx    = app.detail_idx
+        cred   = app.creds[idx]
+        field  = "email" if app.cursor == 0 else "password"
         app.state = S.TYPING
-        def _send_and_type(a, c, i, ev):
+        def _send_and_type(a, c, i, fld, ev):
             # 1. Notify companion app — pops copy modal on Mac/any platform
             p = a._port
             if p:
@@ -596,15 +613,16 @@ def select(app: App, dirty: threading.Event):
                     print(f"[serial] -> SELECT idx={i}")
                 except Exception as e:
                     print(f"[serial] SELECT send error: {e}")
-            # 2. Attempt HID keyboard typing (works on Windows without any approval)
-            type_credential(c.get("usr", ""), c["pwd"])
-            # 3. Show "sent" confirmation, then return to detail screen
+            # 2. Type only the field the user picked (works on Windows without any approval)
+            ok = type_text(c.get("usr", "") if fld == "email" else c["pwd"])
+            # 3. Show a confirmation reflecting what actually happened, then return
+            a.send_ok = ok
             a.state = S.SENT
             ev.set()
             time.sleep(1.8)
             a.state = S.DETAIL
             ev.set()
-        threading.Thread(target=_send_and_type, args=(app, cred, idx, dirty), daemon=True).start()
+        threading.Thread(target=_send_and_type, args=(app, cred, idx, field, dirty), daemon=True).start()
     elif s == S.REMOVE_CFM:
         if app.cursor == 0: app.creds = []; save_vault([]); app.state = S.ACCOUNTS; app.cursor = 0
         else:               go_back(app)
@@ -617,7 +635,8 @@ def select(app: App, dirty: threading.Event):
 def go_back(app: App):
     s = app.state
     if s in (S.ACCOUNTS, S.SETTINGS, S.DEL_ALL_CFM):    app.state = S.HOME;     app.cursor = 0
-    elif s in (S.DETAIL, S.REMOVE_CFM, S.TYPING):        app.state = S.ACCOUNTS; app.cursor = 0
+    elif s == S.DETAIL:                                   app.state = S.ACCOUNTS; app.cursor = app.detail_idx
+    elif s in (S.REMOVE_CFM, S.TYPING):                   app.state = S.ACCOUNTS; app.cursor = 0
     elif s == S.INFO:                                     app.state = S.SETTINGS; app.cursor = 0
 
 def go_home(app: App):
