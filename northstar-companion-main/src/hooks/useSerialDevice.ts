@@ -122,15 +122,12 @@ export function useSerialDevice() {
     msgQueueRef.current = [];
   }
 
-  const connect = useCallback(async () => {
-    const serial = getSerial();
-    if (!serial) return;
+  // Opens an already-permitted port (fresh from requestPort(), or one
+  // returned by getPorts() from a prior session) and wires up the
+  // reader/writer pipeline. Shared by connect() and the auto-reconnect
+  // effect below. Returns true if the port actually opened.
+  const attachPort = useCallback(async (port: NSASerialPort): Promise<boolean> => {
     try {
-      // No vendor filter — shows all serial ports in the picker.
-      // Pi Zero 2 W (g_serial / CDC ACM) enumerates with a Linux Foundation VID
-      // that doesn't match the old Arduino / CH340 filter, so we open the picker
-      // to everything and let the user select the correct port.
-      const port = await serial.requestPort();
       await port.open({ baudRate: 9600 });
       portRef.current = port;
 
@@ -182,10 +179,46 @@ export function useSerialDevice() {
         resetPort();
       })();
 
+      return true;
+    } catch {
+      return false;
+    }
+  }, [dispatchMessage]);
+
+  const connect = useCallback(async () => {
+    const serial = getSerial();
+    if (!serial) return;
+    try {
+      // No vendor filter — shows all serial ports in the picker.
+      // Pi Zero 2 W (g_serial / CDC ACM) enumerates with a Linux Foundation VID
+      // that doesn't match the old Arduino / CH340 filter, so we open the picker
+      // to everything and let the user select the correct port.
+      const port = await serial.requestPort();
+      await attachPort(port);
     } catch {
       // User cancelled the port picker — no-op
     }
-  }, [dispatchMessage]);
+  }, [attachPort]);
+
+  // Silently resume a connection to a port the user already granted
+  // permission for in a previous session — getPorts() doesn't prompt, so this
+  // needs no user gesture and can run on mount. If nothing was previously
+  // granted, or the device isn't plugged in, this is just a no-op — the user
+  // still sees the normal "No Device Connected" state and can connect manually.
+  useEffect(() => {
+    const serial = getSerial();
+    if (!serial) return;
+    let cancelled = false;
+    (async () => {
+      const ports = await serial.getPorts().catch(() => [] as NSASerialPort[]);
+      for (const port of ports) {
+        if (cancelled) return;
+        const ok = await attachPort(port);
+        if (ok) break; // stop at the first port that actually opens
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [attachPort]);
 
   const disconnect = useCallback(async () => {
     const port = portRef.current;
