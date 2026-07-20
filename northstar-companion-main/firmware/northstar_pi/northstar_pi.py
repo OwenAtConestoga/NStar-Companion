@@ -262,7 +262,7 @@ def render(disp: Display, app: App):
         draw.text((10, 9), "N*", font=fnt(24, bold=True), fill=GREEN_500)
         draw.text((44, 12), title,  font=fnt(21),           fill=ZINC_100)
 
-    def row(slot: int, label: str, sel: bool):
+    def row(slot: int, label: str, sel: bool, warn: bool = False):
         y = HDR_H + slot * ROW_H
         if slot > 0:
             draw.line([12, y, W - 12, y], fill=ZINC_800, width=1)
@@ -271,6 +271,10 @@ def render(disp: Display, app: App):
             draw.rectangle([0, y, 3, y + ROW_H - 1], fill=GREEN_500)
             draw.text((12, y + 9), "~", font=fnt(23), fill=GREEN_400)
         draw.text((30, y + 9), label, font=fnt(22), fill=GREEN_400 if sel else ZINC_400)
+        if warn:
+            # small dot = this account has no email/username set — selecting
+            # "email" on it will silently type nothing, so flag it up front
+            draw.ellipse([W - 24, y + 20, W - 16, y + 28], fill=ZINC_500)
 
     def ctr(text: str, y: int, f, color=ZINC_100):
         bbox = draw.textbbox((0, 0), text, font=f)
@@ -312,8 +316,13 @@ def render(disp: Display, app: App):
                 idx = start + slot
                 if idx >= total:
                     break
-                label = ("// " + app.creds[idx]["svc"]) if idx < len(app.creds) else "// remove all"
-                row(slot, label, idx == app.cursor)
+                if idx < len(app.creds):
+                    label = "// " + app.creds[idx]["svc"]
+                    warn  = not app.creds[idx].get("usr", "").strip()
+                else:
+                    label = "// remove all"
+                    warn  = False
+                row(slot, label, idx == app.cursor, warn)
             if total > ROWS:
                 th = max(16, (H - HDR_H) * ROWS // total)
                 ty = HDR_H + (H - HDR_H - th) * app.cursor // max(1, total - 1)
