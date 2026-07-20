@@ -214,29 +214,39 @@ _HID_MAP: dict[str, tuple[int, bool]] = {
     '/':(0x38,False),'?':(0x38,True),
 }
 
-_RELEASE = bytes(8)  # all-zero HID report = no keys pressed
+_RELEASE    = bytes(8)  # all-zero HID report = no keys pressed
+TAB_KEYCODE = 0x2B
 
-def type_password(password: str) -> bool:
-    """Write password to /dev/hidg0 as USB HID keyboard keypresses.
-    Returns True on success, False if HID device unavailable."""
+def _hid_press(hid, modifier: int, keycode: int):
+    hid.write(bytes([modifier, 0x00, keycode, 0x00, 0x00, 0x00, 0x00, 0x00]))
+    hid.flush()
+    time.sleep(0.006)
+    hid.write(_RELEASE)
+    hid.flush()
+    time.sleep(0.006)
+
+def _hid_type(hid, text: str):
+    for ch in text:
+        if ch not in _HID_MAP:
+            print(f"[hid] skipping unmapped char: {repr(ch)}")
+            continue
+        keycode, shift = _HID_MAP[ch]
+        _hid_press(hid, 0x02 if shift else 0x00, keycode)
+
+def type_credential(username: str, password: str) -> bool:
+    """Write username + Tab + password to /dev/hidg0 as USB HID keyboard
+    keypresses, matching the companion app's username/password pair per
+    account. Returns True on success, False if HID device unavailable."""
     if not os.path.exists(HID_DEV):
         print(f"[hid] {HID_DEV} not found — gadget not ready")
         return False
     try:
         with open(HID_DEV, "wb") as hid:
-            for ch in password:
-                if ch not in _HID_MAP:
-                    print(f"[hid] skipping unmapped char: {repr(ch)}")
-                    continue
-                keycode, shift = _HID_MAP[ch]
-                modifier = 0x02 if shift else 0x00   # left shift
-                hid.write(bytes([modifier, 0x00, keycode, 0x00, 0x00, 0x00, 0x00, 0x00]))
-                hid.flush()
-                time.sleep(0.006)
-                hid.write(_RELEASE)
-                hid.flush()
-                time.sleep(0.006)
-        print(f"[hid] typed {len(password)} chars")
+            if username:
+                _hid_type(hid, username)
+                _hid_press(hid, 0x00, TAB_KEYCODE)
+            _hid_type(hid, password)
+        print(f"[hid] typed {len(username)}-char username + tab + {len(password)}-char password")
         return True
     except OSError as e:
         print(f"[hid] error: {e}")
@@ -252,8 +262,8 @@ def render(disp: Display, app: App):
     def hdr(title: str):
         draw.rectangle([0, 0, W, HDR_H - 1], fill=ZINC_900)
         draw.line([0, HDR_H - 1, W, HDR_H - 1], fill=ZINC_800, width=1)
-        draw.text((12, 12), "N*", font=fnt(18, bold=True), fill=GREEN_500)
-        draw.text((40, 14), title,  font=fnt(16),           fill=ZINC_100)
+        draw.text((10, 9), "N*", font=fnt(24, bold=True), fill=GREEN_500)
+        draw.text((44, 12), title,  font=fnt(21),           fill=ZINC_100)
 
     def row(slot: int, label: str, sel: bool):
         y = HDR_H + slot * ROW_H
@@ -262,29 +272,29 @@ def render(disp: Display, app: App):
         if sel:
             draw.rectangle([0, y, W, y + ROW_H - 1], fill=GREEN_BG)
             draw.rectangle([0, y, 3, y + ROW_H - 1], fill=GREEN_500)
-            draw.text((12, y + 13), "~", font=fnt(17), fill=GREEN_400)
-        draw.text((30, y + 13), label, font=fnt(16), fill=GREEN_400 if sel else ZINC_400)
+            draw.text((12, y + 9), "~", font=fnt(23), fill=GREEN_400)
+        draw.text((30, y + 9), label, font=fnt(22), fill=GREEN_400 if sel else ZINC_400)
 
     def ctr(text: str, y: int, f, color=ZINC_100):
         bbox = draw.textbbox((0, 0), text, font=f)
         draw.text(((W - bbox[2] + bbox[0]) // 2, y), text, font=f, fill=color)
 
-    def mono(text: str, y: int, size: int = 14, color=ZINC_400):
+    def mono(text: str, y: int, size: int = 18, color=ZINC_400):
         draw.text((14, y), text, font=fnt(size), fill=color)
 
     # ── PAIRING ───────────────────────────────────────────────────────────────
     if s == S.PAIRING:
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth",  font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// connect USB cable",  66, size=15, color=ZINC_100)
-        mono("// then open the",      92, size=14, color=ZINC_400)
-        mono("// companion app",     114, size=14, color=ZINC_400)
-        draw.line([12, 142, W - 12, 142], fill=ZINC_700, width=1)
-        mono("~ waiting for host_",  158, size=13, color=GREEN_400)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
+        draw.text((50, 16), "NorthStar Auth",  font=fnt(21), fill=GREEN_500)
+        draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
+        mono("// connect USB",       70,  size=19, color=ZINC_100)
+        mono("// cable, then open",  96,  size=18, color=ZINC_400)
+        mono("// the companion app", 120, size=18, color=ZINC_400)
+        draw.line([12, 150, W - 12, 150], fill=ZINC_700, width=1)
+        mono("~ waiting for host_",  168, size=18, color=GREEN_400)
         if int(time.time()) % 2 == 0:
-            draw.rectangle([14, 188, W - 14, 190], fill=GREEN_500)
+            draw.rectangle([14, 200, W - 14, 204], fill=GREEN_500)
 
     # ── HOME ──────────────────────────────────────────────────────────────────
     elif s == S.HOME:
@@ -297,8 +307,8 @@ def render(disp: Display, app: App):
         hdr("// accounts")
         total = len(app.creds) + 1
         if not app.creds:
-            ctr("// no accounts yet.",   108, fnt(14), ZINC_500)
-            ctr("// sync from the app.", 130, fnt(13), ZINC_700)
+            ctr("// no accounts yet.",   112, fnt(19), ZINC_400)
+            ctr("// sync from the app.", 140, fnt(18), ZINC_600)
         else:
             start = max(0, min(app.cursor, total - ROWS))
             for slot in range(ROWS):
@@ -316,61 +326,65 @@ def render(disp: Display, app: App):
     # ── DETAIL ────────────────────────────────────────────────────────────────
     elif s == S.DETAIL:
         cred = app.creds[app.cursor]
+        email = cred.get("usr", "") or "—"
+        if len(email) > 18:
+            email = email[:17] + "…"
         hdr(cred["svc"])
-        mono("// service",           60,  size=12, color=ZINC_500)
-        mono(cred["svc"],            76,  size=16, color=ZINC_100)
-        draw.line([12, 108, W - 12, 108], fill=ZINC_800, width=1)
-        mono("// KEY1 or joystick",  120, size=13, color=ZINC_400)
-        mono("// to type password",  138, size=13, color=ZINC_400)
-        draw.line([12, 162, W - 12, 162], fill=ZINC_800, width=1)
-        mono("~ KEY2=back  KEY3=home", 172, size=11, color=ZINC_600)
+        mono("// service",           52,  size=15, color=ZINC_500)
+        mono(cred["svc"],            68,  size=22, color=ZINC_100)
+        mono("// email",             98,  size=15, color=ZINC_500)
+        mono(email,                  114, size=19, color=ZINC_100)
+        draw.line([12, 142, W - 12, 142], fill=ZINC_800, width=1)
+        mono("// KEY1 types both",   153, size=18, color=ZINC_400)
+        draw.line([12, 182, W - 12, 182], fill=ZINC_800, width=1)
+        mono("~ K2=back  K3=home",   192, size=15, color=ZINC_500)
 
     # ── TYPING ────────────────────────────────────────────────────────────────
     elif s == S.TYPING:
         cred = app.creds[app.cursor] if app.cursor < len(app.creds) else {}
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// typing password...", 68, size=14, color=GREEN_400)
-        mono(cred.get("svc", ""),    94, size=16, color=ZINC_100)
-        draw.line([12, 124, W - 12, 124], fill=ZINC_800, width=1)
-        mono("~ do not unplug_",     138, size=12, color=ZINC_500)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
+        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
+        draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
+        mono("// typing credentials...", 72, size=18, color=GREEN_400)
+        mono(cred.get("svc", ""),    100, size=22, color=ZINC_100)
+        draw.line([12, 134, W - 12, 134], fill=ZINC_800, width=1)
+        mono("~ do not unplug_",     148, size=17, color=ZINC_400)
 
     # ── SENT ──────────────────────────────────────────────────────────────────
     elif s == S.SENT:
         cred = app.creds[app.cursor] if app.cursor < len(app.creds) else {}
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// password sent",     74,  size=15, color=GREEN_400)
-        mono(cred.get("svc", ""),    98,  size=16, color=ZINC_100)
-        draw.line([12, 130, W - 12, 130], fill=ZINC_800, width=1)
-        ctr("✓",                     142, fnt(28, bold=True), GREEN_500)
-        mono("~ returning...",       186, size=12, color=ZINC_500)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
+        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
+        draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
+        mono("// credentials sent",  78,  size=19, color=GREEN_400)
+        mono(cred.get("svc", ""),    106, size=22, color=ZINC_100)
+        draw.line([12, 138, W - 12, 138], fill=ZINC_800, width=1)
+        ctr("✓",                     146, fnt(34, bold=True), GREEN_500)
+        mono("~ returning...",       194, size=16, color=ZINC_400)
 
     # ── CONFIRM ───────────────────────────────────────────────────────────────
     elif s in (S.REMOVE_CFM, S.DEL_ALL_CFM):
         title   = "// remove all?" if s == S.REMOVE_CFM else "// delete all?"
         yes_sel = (app.cursor == 0)
         hdr(title)
-        mono("// cannot be undone.", 60, size=13, color=ZINC_500)
-        draw.line([12, 84, W - 12, 84], fill=ZINC_800, width=1)
+        mono("// cannot be undone.", 60, size=17, color=ZINC_400)
+        draw.line([12, 88, W - 12, 88], fill=ZINC_800, width=1)
 
         def btn(label, x1, x2, y, active):
             is_yes = label == "YES"
             fill   = (RED_BG if is_yes else GREEN_BG) if active else ZINC_900
             tcol   = (RED_400 if is_yes else GREEN_400) if active else ZINC_500
-            draw.rectangle([x1, y, x2, y + 50], fill=fill)
-            draw.rectangle([x1, y, x2, y + 50], outline=ZINC_700, width=1)
-            f = fnt(20, bold=True)
+            draw.rectangle([x1, y, x2, y + 54], fill=fill)
+            draw.rectangle([x1, y, x2, y + 54], outline=ZINC_700, width=1)
+            f = fnt(24, bold=True)
             bb = draw.textbbox((0,0), label, font=f)
-            draw.text((x1 + (x2-x1-(bb[2]-bb[0]))//2, y+14), label, font=f, fill=tcol)
+            draw.text((x1 + (x2-x1-(bb[2]-bb[0]))//2, y+15), label, font=f, fill=tcol)
 
-        btn("YES", 14, 112, 96, active=yes_sel)
-        btn("NO", 128, 226, 96, active=not yes_sel)
-        mono("~ KEY2 = back  KEY3 = home", 162, size=11, color=ZINC_600)
+        btn("YES", 14, 112, 102, active=yes_sel)
+        btn("NO", 128, 226, 102, active=not yes_sel)
+        mono("~ K2=back  K3=home", 178, size=15, color=ZINC_500)
 
     # ── SETTINGS ──────────────────────────────────────────────────────────────
     elif s == S.SETTINGS:
@@ -384,43 +398,42 @@ def render(disp: Display, app: App):
         rows_data = [
             ("accounts",  str(len(app.creds))),
             ("storage",   "microSD"),
-            ("firmware",  "v1.0"),
-            ("hardware",  "Pi Zero 2 W"),
-            ("display",   '1.3" 240x240'),
+            ("firmware",  "v2.0"),
+            ("device",    "Pi Zero 2W · 1.3\" LCD"),
         ]
         for i, (k, v) in enumerate(rows_data):
-            y = HDR_H + 6 + i * 38
+            y = HDR_H + 6 + i * 46
             if i > 0:
                 draw.line([12, y - 2, W - 12, y - 2], fill=ZINC_800, width=1)
-            mono(f"// {k}", y,      size=11, color=ZINC_500)
-            mono(v,          y + 14, size=15, color=ZINC_100)
+            mono(f"// {k}", y,      size=15, color=ZINC_500)
+            mono(v,          y + 17, size=19, color=ZINC_100)
 
     # ── RECEIVING ─────────────────────────────────────────────────────────────
     elif s == S.RECEIVING:
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// syncing vault...", 68, size=15, color=GREEN_400)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
+        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
+        draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
+        mono("// syncing vault...", 72, size=19, color=GREEN_400)
         pct   = min(95, int(len(app.recv_buf) * 100 / app.recv_len)) if app.recv_len else 0
         bar_w = int((W - 32) * pct / 100)
-        draw.rectangle([16, 106, W - 16, 128], fill=ZINC_800)
+        draw.rectangle([16, 110, W - 16, 136], fill=ZINC_800)
         if bar_w > 0:
-            draw.rectangle([16, 106, 16 + bar_w, 128], fill=GREEN_500)
-        mono(f"~ {pct}% complete", 138, size=13, color=ZINC_400)
-        mono(f"// {len(app.recv_buf)} / {app.recv_len} bytes", 158, size=12, color=ZINC_600)
+            draw.rectangle([16, 110, 16 + bar_w, 136], fill=GREEN_500)
+        mono(f"~ {pct}% complete", 150, size=17, color=ZINC_400)
+        mono(f"// {len(app.recv_buf)} / {app.recv_len} bytes", 174, size=16, color=ZINC_500)
 
     # ── SYNC DONE ─────────────────────────────────────────────────────────────
     elif s == S.SYNC_DONE:
         draw.rectangle([0, 0, W, H], fill=LCD_BG)
-        draw.text((12, 14), "N*", font=fnt(20, bold=True), fill=GREEN_400)
-        draw.text((44, 17), "NorthStar Auth", font=fnt(16), fill=GREEN_500)
-        draw.line([12, 50, W - 12, 50], fill=ZINC_700, width=1)
-        mono("// sync complete",  72, size=15, color=GREEN_400)
-        draw.line([12, 104, W - 12, 104], fill=ZINC_800, width=1)
+        draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
+        draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
+        draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
+        mono("// sync complete",  80, size=19, color=GREEN_400)
+        draw.line([12, 112, W - 12, 112], fill=ZINC_800, width=1)
         n = app.sync_n
-        mono(f"// {n} account{'s' if n!=1 else ''} saved.", 116, size=14, color=ZINC_100)
-        mono("~ vault updated_", 140, size=13, color=GREEN_500)
+        mono(f"// {n} account{'s' if n!=1 else ''} saved.", 128, size=18, color=ZINC_100)
+        mono("~ vault updated_", 156, size=17, color=GREEN_500)
 
     disp.show(img)
 
@@ -584,7 +597,7 @@ def select(app: App, dirty: threading.Event):
                 except Exception as e:
                     print(f"[serial] SELECT send error: {e}")
             # 2. Attempt HID keyboard typing (works on Windows without any approval)
-            type_password(c["pwd"])
+            type_credential(c.get("usr", ""), c["pwd"])
             # 3. Show "sent" confirmation, then return to detail screen
             a.state = S.SENT
             ev.set()
