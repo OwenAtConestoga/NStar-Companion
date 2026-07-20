@@ -346,7 +346,7 @@ def render(disp: Display, app: App):
         draw.text((10, 11), "N*", font=fnt(26, bold=True), fill=GREEN_400)
         draw.text((50, 16), "NorthStar Auth", font=fnt(21), fill=GREEN_500)
         draw.line([12, 54, W - 12, 54], fill=ZINC_700, width=1)
-        mono("// typing credentials...", 72, size=18, color=GREEN_400)
+        mono("// typing...",          72, size=18, color=GREEN_400)
         mono(cred.get("svc", ""),    100, size=22, color=ZINC_100)
         draw.line([12, 134, W - 12, 134], fill=ZINC_800, width=1)
         mono("~ do not unplug_",     148, size=17, color=ZINC_400)
@@ -399,7 +399,7 @@ def render(disp: Display, app: App):
             ("accounts",  str(len(app.creds))),
             ("storage",   "microSD"),
             ("firmware",  "v2.0"),
-            ("device",    "Pi Zero 2W · 1.3\" LCD"),
+            ("device",    "Pi Zero 2W · 1.3in"),
         ]
         for i, (k, v) in enumerate(rows_data):
             y = HDR_H + 6 + i * 46
