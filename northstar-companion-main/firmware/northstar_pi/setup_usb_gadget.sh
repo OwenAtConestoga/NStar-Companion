@@ -79,6 +79,17 @@ pip3 install --quiet pyserial spidev pillow RPi.GPIO --break-system-packages 2>/
     || pip3 install --quiet pyserial spidev pillow RPi.GPIO
 echo "[ok]   Python packages installed."
 
+# The firmware's fnt() falls back to PIL's tiny fixed-size bitmap font if this
+# is missing — it won't error, it'll just silently render everything at one
+# unreadable size no matter what size is requested. Easy to miss since nothing
+# crashes.
+if [ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf ]; then
+    apt-get install -y -qq fonts-dejavu-core >/dev/null 2>&1
+    echo "[ok]   Installed fonts-dejavu-core (LCD text font)."
+else
+    echo "[skip] fonts-dejavu-core already installed."
+fi
+
 # ── 5. Create vault directory ─────────────────────────────────────────────────
 VAULT_DIR="/home/pi/.northstar"
 mkdir -p "$VAULT_DIR"
